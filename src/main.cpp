@@ -5,73 +5,91 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
+#include <EEPROM.h>
 
 
-/* PINS MOTOR  */
-
+/********** PINS MOTOR ***************************************************/
 #define PIN_DRIVER_ENA 22          // ENA+ Pin
 #define PIN_DRIVER_PUL 24          // PUL+ Pin
 #define PIN_DRIVER_DIR 26          // DIR+ Pin
-int motorSpeed = 500;
-boolean motorDirection = LOW;
+/*************************************************************************/
 
-/* PINS ROTARY ENCODER */
 
+/********** PINS ROTARY ENCODER ******************************************/
 #define PIN_ROTARY_ENCODER_CLK 27  // CLK
 #define PIN_ROTARY_ENCODER_DT 25   // DT
 #define PIN_ROTARY_ENCODER_SW 23   // Switch
-long altePosition = -999;         // Definition der "alten" Position (Diese fiktive alte Position wird benötigt, damit die aktuelle Position später im seriellen Monitor nur dann angezeigt wird, wenn wir den Rotary Head bewegen)
-
 // erzeuge ein neues Encoder Objekt
-Encoder meinEncoder(PIN_ROTARY_ENCODER_DT, PIN_ROTARY_ENCODER_CLK);
+Encoder rotaryEncoder(PIN_ROTARY_ENCODER_DT, PIN_ROTARY_ENCODER_CLK);
+/*************************************************************************/
 
-/* PINS SWITCHES */
 
+/********** PINS SWITCHES ************************************************/
 /*
-SWITCH 1: 28    SWITCH 7: 40
-SWITCH 2: 30    SWITCH 8: 42
-SWITCH 3: 32    SWITCH 9: 44
-SWITCH 4: 34    SWITCH 10: 46
-SWITCH 5: 36    SWITCH 11: 48
-SWITCH 6: 38    SWITCH 12: 50
+SWITCH 1: 44    SWITCH 7: 40
+SWITCH 2: 46    SWITCH 8: 42
+SWITCH 3: 48    SWITCH 9: 28
+SWITCH 4: 50    SWITCH 10: 30
+SWITCH 5: 36    SWITCH 11: 32
+SWITCH 6: 38    SWITCH 12: 34
 SWITCH 13: 52
+SWITCH 14: 23 (PIN_ROTARY_ENCODER_SW)
 */
 #define NUM_BUTTONS 14
-//const uint8_t BUTTON_PINS[NUM_BUTTONS] = {28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, PIN_ROTARY_ENCODER_SW};
 const uint8_t BUTTON_PINS[NUM_BUTTONS] = {44, 46, 48, 50, 36, 38, 40, 42, 28, 30, 32, 34, 52, PIN_ROTARY_ENCODER_SW};
 Bounce * buttons = new Bounce[NUM_BUTTONS];
-int buttonPressed = -1;
+/*************************************************************************/
 
+
+/********** PINS END STOPS ***********************************************/
 Bounce endStopA = Bounce();
 Bounce endStopB = Bounce();
+/*************************************************************************/
 
-/* PINS LCD DISPLAY */
+
+/********** PINS DISPLAY *************************************************/
 // pin 3 - Serial clock out (SCLK)
 // pin 4 - Serial data out (DIN)
 // pin 5 - Data/Command select (D/C)
 // pin 6 - LCD chip select (CS)
 // pin 7 - LCD reset (RST)
 Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
+/*************************************************************************/
 
-int totalTrackSteps = 0;
+
+/********** GLOBALS ******************************************************/
+int motorSpeed = 500;             //initial default speed of the motor
+boolean motorDirection = LOW;     // clockwise rotation
+//long altePosition = -999;         // Definition der "alten" Position (Diese fiktive alte Position wird benötigt, damit die aktuelle Position später im seriellen Monitor nur dann angezeigt wird, wenn wir den Rotary Head bewegen)
+int buttonPressed = -1;           // the array ID of the button that has been pressed last
+int totalTrackSteps = 0;          // the number of steps from one end stop to the the other end stop
+unsigned long startTime = 0;
+unsigned long currentStepPosition = 0;
+/*************************************************************************/
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // FUNCTION DECLARATIONS //////////////////////////////////////////////////////////////////////////////////
-
+//
+//
 void DisplayClear();
 void DisplayMessage(int x, int y, String message);
 void MotorChangeDirection();
 void MotorCalibrateEndStops();
 void MotorStep();
-void CheckButtons();
+bool CheckButton(byte id);
+int CheckButtons();
 bool CheckEndStopA();
 bool CheckEndStopB();
 void UpdateDisplay();
 
 
-/**********************************************************************************************************/
-/* SETUP **************************************************************************************************/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SETUP //////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//
 void setup()
 {
   Serial.begin(9600);
@@ -81,6 +99,8 @@ void setup()
   display.setContrast(57);
   delay(1000);
   display.clearDisplay();
+  
+  DisplayMessage(0, 0, "Starte LokLift Controller...");
 
   /* BUTTONS SETUP */
 
@@ -103,16 +123,31 @@ void setup()
   // enable motor
   digitalWrite(PIN_DRIVER_ENA,LOW);
 
-  // start calibration
-  MotorCalibrateEndStops();
+  // check five seconds for button presses during statup to enter configuration modes
+  startTime = millis();
+  while( millis() < startTime + 5000 )
+  {
+    CheckButtons();
+  }
+
+  // if button 12 is pressed on startup then start calibration
+  if ( buttonPressed == 12 )
+  {
+    MotorCalibrateEndStops();
+  }
+
+  DisplayClear();
+  DisplayMessage(0, 0, "Bahn frei!");
 }
 
 
 
 
 
-/*********************************************************************************************************/
-/* LOOP **************************************************************************************************/
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// LOOP ///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//
 void loop()
 {
   /* BUTTONS CHECK LOOP */
@@ -120,9 +155,13 @@ void loop()
   CheckEndStopA();
   CheckEndStopB();
 
+
+  long encoderPosition = rotaryEncoder.read();
+  Serial.println(encoderPosition);
+
   /* MOTOR LOOP */
 /*
-  long neuePosition = meinEncoder.read(); // Die "neue" Position des Encoders wird definiert. Dabei wird die aktuelle Position des Encoders über die Variable.Befehl() ausgelesen.
+  long neuePosition = rotaryEncoder.read(); // Die "neue" Position des Encoders wird definiert. Dabei wird die aktuelle Position des Encoders über die Variable.Befehl() ausgelesen.
   if (neuePosition != altePosition) // Sollte die neue Position ungleich der alten (-999) sein (und nur dann!!)...
   {
     altePosition = neuePosition;
@@ -143,6 +182,8 @@ void loop()
   digitalWrite(PIN_DRIVER_PUL, LOW);
   delayMicroseconds(pd);
 */
+
+
 }
 
 
@@ -152,7 +193,7 @@ void loop()
 /*
 *  CheckButtons()
 */
-void CheckButtons()
+int CheckButtons()
 {
   for (int i = 0; i < NUM_BUTTONS; i++)  {
     // Update the Bounce instance :
@@ -164,17 +205,33 @@ void CheckButtons()
       Serial.println(i);
   
       buttonPressed = i;
-
-      // check rotary encoder button press
-      if ( i == 13 )
-      {
-        Serial.println("Motor Clibaration");
-        MotorChangeDirection();
-      }
-
-      UpdateDisplay();
+      return i;
     }
   }
+
+  return -1;
+}
+
+
+/*****************************************************
+*  CheckButton(byte id)
+* returns true if the button with the id is pressed
+*/
+bool CheckButton(byte id)
+{
+  Serial.print("CheckButton() ");
+  Serial.println(id);
+  
+  buttons[id].update();
+  
+  if ( buttons[id].fell() ) { 
+    Serial.println("true");
+    buttonPressed = id;
+    return true; 
+  }
+  
+  Serial.println("false");
+  return false;
 }
 
 
@@ -230,7 +287,11 @@ void MotorCalibrateEndStops()
   Serial.println("MotorCalibrateEndStops()");
 
   DisplayClear();
-  DisplayMessage(0, 0, "Kalibrierung ...");
+  DisplayMessage(0, 0, "Kalibrierung");
+
+  // read value from EEPROM
+  unsigned int storedTotalTrackSteps = 0;
+  EEPROM.get(0, storedTotalTrackSteps);
 
   bool hasFirstEndStopTriggered = false;
   bool hasSecondEndStopTriggered = false;
@@ -247,7 +308,7 @@ void MotorCalibrateEndStops()
     }
   }
 
-  // Goto second End Stop
+  // Goto second End Stop and record each step until enstop B is triggered
   while( hasSecondEndStopTriggered == false )
   {
     MotorStep();
@@ -262,12 +323,29 @@ void MotorCalibrateEndStops()
     }
   }
 
-  // If endstop A triggers
-  // Goto endstop B and record each step until enstop B is triggered
+  // Now motor is at position totalTrackSteps
+  // from now on we need to track every step movement in currentStepPosition variable
+  currentStepPosition = totalTrackSteps;
+
+  // move back a little 10% of the totalTrackSteps
+  int tenPercentSteps = totalTrackSteps / 100 * 10;
+  for (size_t i = 0; i < tenPercentSteps; i++)
+  {
+    MotorStep();
+  }
 
   Serial.println("Calibration finished");
   Serial.print("Total track steps:");
   Serial.println(totalTrackSteps);
+
+  // if new value differs from stored value then save it to EEPROM
+  if ( storedTotalTrackSteps != totalTrackSteps )
+  {
+    EEPROM.put(0, totalTrackSteps);
+  }
+
+  DisplayMessage(0, 40, "Gespeichert");
+  delay(2000);
 }
 
 
@@ -282,8 +360,14 @@ void MotorStep()
   delayMicroseconds(motorSpeed);
   digitalWrite(PIN_DRIVER_PUL, LOW);
   delayMicroseconds(motorSpeed);
-}
 
+  if ( motorDirection == HIGH )
+  {
+    currentStepPosition++;
+  }else{
+    currentStepPosition--;
+  }
+}
 
 /*****************************************************
 *  UpdateDisplay()
@@ -326,5 +410,6 @@ void DisplayMessage(int x, int y, String message)
 {
   display.setCursor(x,y);
   display.println(message);
+  Serial.println(message);
   display.display();
 }
