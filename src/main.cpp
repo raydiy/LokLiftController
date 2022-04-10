@@ -230,7 +230,7 @@ void MotorCalibrateEndStops()
   Serial.println("MotorCalibrateEndStops()");
 
   DisplayClear();
-  DisplayMessage(0, 0, "Kalibrierung");
+  DisplayMessage(0, 0, "Kalibrierung ...");
 
   bool hasFirstEndStopTriggered = false;
   bool hasSecondEndStopTriggered = false;
