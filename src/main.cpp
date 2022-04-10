@@ -58,13 +58,18 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 
 
 /********** GLOBALS ******************************************************/
-int motorSpeed = 500;             //initial default speed of the motor
+int motorMinSpeed = 2000;         // base speed of the motor
+int motorMaxSpeed = 50;
+int motorSpeed = 0;               // speed changed by rotary encoder
 boolean motorDirection = LOW;     // clockwise rotation
 //long altePosition = -999;         // Definition der "alten" Position (Diese fiktive alte Position wird benötigt, damit die aktuelle Position später im seriellen Monitor nur dann angezeigt wird, wenn wir den Rotary Head bewegen)
 int buttonPressed = -1;           // the array ID of the button that has been pressed last
-int totalTrackSteps = 0;          // the number of steps from one end stop to the the other end stop
+unsigned int totalTrackSteps = 0;          // the number of steps from one end stop to the the other end stop
 unsigned long startTime = 0;
 unsigned long currentStepPosition = 0;
+long encoderPosition = 0;
+long oldEncoderPosition = 0;
+byte motorMode = 0;             // different motorModes: 1 continuos, 2 single step
 /*************************************************************************/
 
 
@@ -78,6 +83,7 @@ void DisplayMessage(int x, int y, String message);
 void MotorChangeDirection();
 void MotorCalibrateEndStops();
 void MotorStep();
+void MotorModeSwitch();
 bool CheckButton(byte id);
 int CheckButtons();
 bool CheckEndStopA();
@@ -156,8 +162,51 @@ void loop()
   CheckEndStopB();
 
 
-  long encoderPosition = rotaryEncoder.read();
-  Serial.println(encoderPosition);
+  encoderPosition = rotaryEncoder.read();
+  if ( oldEncoderPosition != encoderPosition )
+  {
+    oldEncoderPosition = encoderPosition;
+    Serial.println(encoderPosition);
+  }
+  
+  // check for rotay encoder knob switch press
+  if ( buttonPressed == 13 ) 
+  { 
+    MotorModeSwitch();
+    oldEncoderPosition = 0;
+    encoderPosition = 0;
+    rotaryEncoder.write(0);
+    buttonPressed = -1;
+  }
+
+  // continuous motor mode
+  // rotary encoder controlls the speed
+  if ( motorMode == 0 ) 
+  {
+    if( encoderPosition != 0 )
+    {
+      motorDirection = encoderPosition > 0 ? HIGH : LOW;
+      motorSpeed = motorMinSpeed - abs(encoderPosition);
+      MotorStep();
+    }
+  }
+
+  // step motor mode
+  // each encoder step is a single motor step
+  else if ( motorMode == 1 )
+  {
+    // Single Motor Step Mode
+    if( encoderPosition != 0 )
+    {
+      motorDirection = encoderPosition > 0 ? HIGH : LOW;
+      MotorStep();
+      oldEncoderPosition = 0;
+      encoderPosition = 0;
+      rotaryEncoder.write(0);
+    }
+  }
+
+
 
   /* MOTOR LOOP */
 /*
@@ -328,7 +377,7 @@ void MotorCalibrateEndStops()
   currentStepPosition = totalTrackSteps;
 
   // move back a little 10% of the totalTrackSteps
-  int tenPercentSteps = totalTrackSteps / 100 * 10;
+  unsigned int tenPercentSteps = totalTrackSteps / 100 * 10;
   for (size_t i = 0; i < tenPercentSteps; i++)
   {
     MotorStep();
@@ -346,6 +395,22 @@ void MotorCalibrateEndStops()
 
   DisplayMessage(0, 40, "Gespeichert");
   delay(2000);
+}
+
+
+/*****************************************************
+* MotorModeSwitch()
+* switches thorugh the different motor modes
+*/
+void MotorModeSwitch()
+{
+  motorMode++;
+  if ( motorMode >= 2)
+  {
+    motorMode = 0;
+  }
+  Serial.print("motorMode: ");
+  Serial.println(motorMode);
 }
 
 
