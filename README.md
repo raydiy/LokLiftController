@@ -47,7 +47,7 @@ Anfahrens sind keinen weiteren Aktionen möglich.
 
 ## Positionen speichern
 
-### Lauf-Modus
+#### Lauf-Modus
 
 Mit dem Drehregler können Sie den Motor Manuell bewegen. Nach der Start der Box und sobald "Bahn frei!" auf dem Display erscheint, ist die 
 Motor-Steuerung im sog. "Lauf-Modus". Dieser ist für einen schnelle (grobe) Einstellung gedacht. Mit dem Drehregler steuert man die 
@@ -60,12 +60,14 @@ weiteres mal auf dem Drehregler drücken, dann ist der "Lauf-Modus" wieder aktiv
 [BILD]
 [BILD]
 
-### Schritt-Modus
+#### Schritt-Modus
 Im "Schritt-Modus" wird mit jedem Schritt des Drehreglers ein einzelner Motor-Schritt gefahren. So können die Gleise sehr genau ausgerichtet werden.
 
+#### Speichern
 Um nun die Position zu speichern drücken Sie einmal auf den Speichern-Schalter. So weiss die Box, dass die Position nun gespeichert werden soll.
 Anschließend drücken einen der 12 Positions-Schalter, um die Position auf diesen Schalter zu legen.
 [BILD]
 
+#### SPeichern abbrechen
 Falls das Speichern abgebrochen werden soll, einfach nochmal den Speichern-Schalter drücken.
 [BILD]
