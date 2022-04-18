@@ -52,20 +52,19 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 /*************************************************************************/
 
 /********** GLOBALS ******************************************************/
-int motorMinSpeed = 2000; // base speed of the motor
-int motorMaxSpeed = 50;
-int motorSpeed = 2000;           // speed changed by rotary encoder
-int motorCalibrationSpeed = 500;
-boolean motorDirection = LOW; // clockwise rotation
-// long altePosition = -999;         // Definition der "alten" Position (Diese fiktive alte Position wird benötigt, damit die aktuelle Position später im seriellen Monitor nur dann angezeigt wird, wenn wir den Rotary Head bewegen)
-int buttonPressed = -1;           // the array ID of the button that has been pressed last
-unsigned long totalTrackSteps = 0; // the number of steps from one end stop to the the other end stop
-unsigned long startTime = 0;
-unsigned long currentStepPosition = 0;
-long encoderPosition = 0;
-long oldEncoderPosition = 0;
-byte motorMode = 0; // different motorModes: 1 continuos, 2 single step
-unsigned long targetPositions[12];
+int motorMinSpeed                       = 2000;     // base speed of the motor when in DRIVE MODE
+int motorMaxSpeed                       = 357;      // 357 is about 420 U/min
+int motorSpeed                          = 2000;     // speed used for the motor steps
+int motorCalibrationSpeed               = 500;      // 500 is about 300 U/min, thsi speed is used during calibration
+boolean motorDirection                  = LOW;      // LOW = clockwise rotation
+int buttonPressed                       = -1;       // the array ID of the button that has been pressed last
+unsigned long totalTrackSteps           = 0;        // the number of steps from one end stop to the the other end stop
+unsigned long startTime                 = 0;        // used for different situations where a startTime is needed
+unsigned long currentStepPosition       = 0;        // the current position of the motor is steps
+long encoderPosition                    = 0;        // the current encoder position
+long oldEncoderPosition                 = 0;        // old encoder position (needed for reading encoder changes)
+byte motorMode                          = 0;        // different motorModes: 1 continuos, 2 single step
+unsigned long targetPositions[12];                  // holds the 12 stored positions loaded from EEPROM in steps
 
 /*************************************************************************/
 
@@ -104,13 +103,14 @@ void setup()
     /* LCD DISPLAY SETUP */
     display.begin();
     display.setContrast(57);
-    delay(1000);
-    display.clearDisplay();
-
-    DisplayMessage(0, 0, "Starte LokLift Controller...");
+    
+    DisplayClear();
+    DisplayMessage(20, 0, "LokLift");
+    DisplayMessage(10, 10, "Controller");
+    DisplayMessage(0, 30, "Starte");
 
     // Load Data from EEPROM
-    DebugPrintEEPROM();
+    //DebugPrintEEPROM();
     LoadEEPROMData();
 
     /* BUTTONS SETUP */
@@ -121,6 +121,8 @@ void setup()
         buttons[i].attach(BUTTON_PINS[i], INPUT_PULLUP); // setup the bounce instance for the current button
         buttons[i].interval(25);                         // interval in ms
     }
+
+    /* SETUP ENDSTOP BUTTONS */
 
     endStopA.attach(8, INPUT_PULLUP);
     endStopA.interval(25);
@@ -137,34 +139,45 @@ void setup()
 
     // check five seconds for button presses during startup to enter configuration modes
     startTime = millis();
-    while (millis() < startTime + 5000)
-    {
+    while ( millis() < startTime + 5000 )
+    { 
+        unsigned long m = millis();
+        if ( m > startTime && m < startTime + 1000 ) { DisplayMessage(40, 30, "."); }
+        else if ( m > startTime && m < startTime + 2000 ) { DisplayMessage(40, 30, ".."); }
+        else if ( m > startTime && m < startTime + 3000 ) { DisplayMessage(40, 30, "..."); }
+        else if ( m > startTime && m < startTime + 4000 ) { DisplayMessage(40, 30, "...."); }
+        else if ( m > startTime && m < startTime + 5000 ) { DisplayMessage(40, 30, "....."); }
         CheckButtons();
-    }
 
-    // if button 12 is pressed on startup then start calibration
-    if (buttonPressed == 12)
-    {
-        MotorCalibrateEndStops();
-    }
-    // if no button is pressed, move motor to position 0 until endstop is pressed
-    // and then move it back a little to release the endstop switch
-    else
-    {
-        MotorMoveToEndStopA();
-
-        // Now motor is at position 0
-        // from now on we need to track every step movement in currentStepPosition variable
-        // which is handled in MotorStep(). so ALWAYS use MotorStep()
-        currentStepPosition = 0;
-
-        // move back a little 10% of the totalTrackSteps
-        unsigned int tenPercentSteps = totalTrackSteps / 100 * 10;
-        for (size_t i = 0; i < tenPercentSteps; i++)
+        // if button 12 is pressed on startup then start calibration
+        if (buttonPressed == 12)
         {
-            MotorStep();
+            MotorCalibrateEndStops();
         }
     }
+
+    // reset last button pressed
+    buttonPressed = -1;
+
+    DisplayClear();
+    DisplayMessage(20, 0, "LokLift");
+    DisplayMessage(10, 10, "Controller");
+    DisplayMessage(0, 30, "Kalibriere ...");
+
+    MotorMoveToEndStopA();
+
+    // Now motor is at position 0
+    // from now on we need to track every step movement in currentStepPosition variable
+    // which is handled in MotorStep(). so ALWAYS use MotorStep()
+    currentStepPosition = 0;
+
+    // move back a little 10% of the totalTrackSteps
+    unsigned int tenPercentSteps = totalTrackSteps / 100 * 10;
+    for (size_t i = 0; i < tenPercentSteps; i++)
+    {
+        MotorStep();
+    }
+
 
     PrepareForMainLoop();
 }
@@ -209,15 +222,17 @@ void loop()
         buttonPressed = -1;
     }
 
-    // MOTOR MODES
-    // continuous motor mode
-    // rotary encoder controlls the speed
+    // MOTOR LOOP MODES
+
+    // CONTINOUS MOTOR MODE / DRIVE MODE / LAUF-MODUS
+    // rotary encoder controls the speed
     if (motorMode == 0)
     {
         if (encoderPosition != 0)
         {
             motorDirection = encoderPosition > 0 ? LOW : HIGH;
-            motorSpeed = motorMinSpeed - abs(encoderPosition);
+            motorSpeed = motorMinSpeed - abs(encoderPosition * 100);
+            if ( motorSpeed < motorMaxSpeed ) { motorSpeed = motorMaxSpeed; }
             MotorStep();
 
             if ( CheckEndStopA() || CheckEndStopB() )
@@ -229,7 +244,7 @@ void loop()
         }
     }
 
-    // step motor mode
+    // STEP MOTOR MODE / STEP MODE / SCHRITT-MODUS
     // each encoder step is a single motor step
     else if (motorMode == 1)
     {
@@ -246,7 +261,7 @@ void loop()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // FUNCTION DEFINITIONS ///////////////////////////////////////////////////////////////////////////////////
 
-/*
+/*****************************************************
  * CalculateEEPROMAddressForButton()
  * Caclualtes the address for a certain position in EEPROM
  * every value is an unsigned long
@@ -271,22 +286,21 @@ int CalculateEEPROMAddressForButton( byte buttonID )
 }
 
 
-/*
+/*****************************************************
  * CheckButtons()
  */
 int CheckButtons()
 {
     for (int i = 0; i < NUM_BUTTONS; i++)
     {
-        // Update the Bounce instance :
+        // Update the Bounce instance
         buttons[i].update();
+
         // If button has been pressed
         if (buttons[i].fell())
         {
-            // TODO
             Serial.print("Button pressed: ");
             Serial.println(i);
-
             buttonPressed = i;
             return i;
         }
@@ -294,6 +308,7 @@ int CheckButtons()
 
     return -1;
 }
+
 
 /*****************************************************
  *  CheckButton(byte id)
@@ -317,6 +332,7 @@ bool CheckButton(byte id)
     return false;
 }
 
+
 /*****************************************************
  *  CheckEndStopA()
  */
@@ -332,6 +348,7 @@ bool CheckEndStopA()
 
     return false;
 }
+
 
 /*****************************************************
  *  CheckEndStopB()
@@ -408,7 +425,7 @@ void MotorCalibrateEndStops()
     Serial.println("MotorCalibrateEndStops()");
 
     DisplayClear();
-    DisplayMessage(0, 0, "Kalibrierung");
+    DisplayMessage(0, 0, "Strecke messen");
 
     // read value from EEPROM
     unsigned int storedTotalTrackSteps = 0;
@@ -478,9 +495,10 @@ void MotorCalibrateEndStops()
     delay(2000);
 }
 
+
 /*****************************************************
  * MotorModeSwitch()
- * switches thorugh the different motor modes
+ * switches through the different motor modes
  */
 void MotorModeSwitch()
 {
@@ -489,8 +507,25 @@ void MotorModeSwitch()
     {
         motorMode = 0;
     }
+
+    DisplayClear();
+
+    if ( motorMode == 0 )
+    {
+        DisplayMessage( 0,0, "Lauf-Modus");
+    }
+    else if ( motorMode == 1 )
+    {
+        DisplayMessage( 0,0, "Schritt-Modus");
+    }
+
     Serial.print("motorMode: ");
     Serial.println(motorMode);
+
+    delay(1500);
+
+    // back to main loop
+    PrepareForMainLoop();
 }
 
 
@@ -504,8 +539,9 @@ void MotorMoveTo( unsigned long targetPosition )
     Serial.println(targetPosition);
 
     DisplayClear();
-    DisplayMessage(0,0, "Ziel: ");
-    DisplayMessage(0,10, String(targetPosition));
+    DisplayMessage(0,0, "Bahn frei!");
+    DisplayMessage(0,20, "Ziel: ");
+    DisplayMessage(0,30, String(targetPosition));
 
     // cancel if target position is 0 or 4294967295 which is
     // the max value for insigned long
@@ -516,7 +552,7 @@ void MotorMoveTo( unsigned long targetPosition )
     } 
 
     // set motor speed
-    motorSpeed = motorCalibrationSpeed;
+    motorSpeed = motorMaxSpeed;
 
     // move motor as long as target is not reached
     while( currentStepPosition != targetPosition )
@@ -535,7 +571,7 @@ void MotorMoveTo( unsigned long targetPosition )
         //Serial.println(targetPosition);
     }
 
-    DisplayMessage(0,30, "Fertig!");
+    DisplayMessage(0,40, "Fertig!");
     delay(1000);
 
     PrepareForMainLoop();
@@ -592,8 +628,8 @@ void PrepareForMainLoop()
 {
     DisplayClear();
     DisplayMessage(0, 0, "Bahn frei!");
-    DisplayMessage(0, 10, "Position:");
-    DisplayMessage(0, 20, String(currentStepPosition));
+    DisplayMessage(0, 20, "Position:");
+    DisplayMessage(0, 30, String(currentStepPosition));
 
     buttonPressed = -1;
     EncoderReset();
@@ -617,6 +653,7 @@ void UpdateDisplay()
     display.display();
 }
 
+
 /*****************************************************
  *  DisplayClear()
  */
@@ -626,6 +663,7 @@ void DisplayClear()
     display.setTextSize(1);
     display.setTextColor(BLACK);
 }
+
 
 /*****************************************************
  *  DisplayMessage(int x, int y, String message)
@@ -690,6 +728,7 @@ void SavePosition()
     // Dump EEPROM to console 
     DebugPrintEEPROM();
 }
+
 
 /*****************************************************
  * DebugPrintEEPROM
