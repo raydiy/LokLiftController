@@ -15,6 +15,7 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 ## Erster Start
 
 Nachdem die Box mit Strom versorgt wird (5-12V für den Arduiono Mega über Netzteil oder über USB) wird der Start-Bildschirm angezeigt.
+
 [BILD]
 
 Hier hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. Der Ablauf der 5 Sekunden wird duch die Punkte visualisiert.
