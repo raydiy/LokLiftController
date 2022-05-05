@@ -26,10 +26,9 @@ Drückt man während dieser 5 Sekunden auf den roten Speicher-Schalter startet m
 Dieser Vorgang ist wichtig und sollte als erstes einmalig durchgeführt werden. Hierbei fährt der Motor die beiden Endstopps an
 und speichert die gefahrene Strecke ab. Dies ist notwendig, um später die Positionen genau anfahren zu können.
 
-Wenn die Streckenmessung startet fährt der Motor zunächst zum Endstopp B (Motor-Drehrichting im Uhrzeigersinn).
+Wenn die Streckenmessung startet fährt der Motor zunächst zum Endstopp B (Motor-Drehrichtung im Uhrzeigersinn).
 Sobald Endstopp B erreicht ist wechselt die Drehrichtung (entgegen Uhrzeigersinn) und fährt zurück bis Endstopp A ausgelöst wird.
-Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entsprechend angeordnet sind, dass genau die Abfolge wie eben 
-beschrieben durchgeführt werden kann.
+Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entsprechend angeordnet sind, dass genau die Abfolge wie beschrieben durchgeführt werden kann.
 
 Nachdem am Ende der Streckenmessung Enstopp A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstopp A nicht dauerhaft 
 ausgelöst wird, und die Wegstrecke wird gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
