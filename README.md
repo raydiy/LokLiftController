@@ -14,7 +14,7 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 
 ## Erster Start
 
-Nachdem die Box mit Strom versorgt wird (5-12V für den Arduiono Mega über Netzteil oder über USB) wird der Start-Bildschirm angezeigt.
+Nachdem die Box mit Strom versorgt wird (5-12V für den Arduino Mega über Netzteil oder über USB) wird der Start-Bildschirm angezeigt.
 
 [BILD]
 
