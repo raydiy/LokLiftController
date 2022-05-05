@@ -32,7 +32,7 @@ Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entspreche
 
 Nachdem am Ende der Streckenmessung Enstopp A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstopp A nicht dauerhaft 
 ausgelöst wird, und die Wegstrecke wird gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
-Das Display gibt einen entsprechende Meldung aus.
+Das Display gibt eine entsprechende Meldung aus.
 
 [BILD]
 
