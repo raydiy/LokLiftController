@@ -29,7 +29,7 @@ SWITCH 3: 48    SWITCH 9: 28
 SWITCH 4: 50    SWITCH 10: 30
 SWITCH 5: 36    SWITCH 11: 32
 SWITCH 6: 38    SWITCH 12: 34
-SWITCH 13: 52
+SWITCH 13: 52 (MODUS SWITCH)
 SWITCH 14: 23 (PIN_ROTARY_ENCODER_SW)
 */
 #define NUM_BUTTONS 14
@@ -38,6 +38,8 @@ Bounce *buttons = new Bounce[NUM_BUTTONS];
 /*************************************************************************/
 
 /********** PINS END STOPS ***********************************************/
+#define PIN_ENDSTOP_A 8 // Endstop switch pin
+#define PIN_ENDSTOP_B 9 // Endstop switch pin
 Bounce endStopA = Bounce();
 Bounce endStopB = Bounce();
 /*************************************************************************/
@@ -52,19 +54,24 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 /*************************************************************************/
 
 /********** GLOBALS ******************************************************/
-int motorMinSpeed                       = 2000;     // base speed of the motor when in DRIVE MODE
-int motorMaxSpeed                       = 357;      // 357 is about 420 U/min
-int motorSpeed                          = 2000;     // speed used for the motor steps
-int motorCalibrationSpeed               = 500;      // 500 is about 300 U/min, thsi speed is used during calibration
-boolean motorDirection                  = LOW;      // LOW = clockwise rotation
+//int motorMinSpeed                       = 2000;     // base speed of the motor when in DRIVE MODE
+//int motorMaxSpeed                       = 357;      // 357 is about 420 U/min
+//int motorCalibrationSpeed               = 500;      // 500 is about 300 U/min, this speed is used during calibration
 int buttonPressed                       = -1;       // the array ID of the button that has been pressed last
 unsigned long totalTrackSteps           = 0;        // the number of steps from one end stop to the the other end stop
 unsigned long startTime                 = 0;        // used for different situations where a startTime is needed
-unsigned long currentStepPosition       = 0;        // the current position of the motor is steps
+unsigned long currentStepPosition       = 0;        // the current position of the motor in steps
 long encoderPosition                    = 0;        // the current encoder position
 long oldEncoderPosition                 = 0;        // old encoder position (needed for reading encoder changes)
 byte motorMode                          = 0;        // different motorModes: 1 continuos, 2 single step
 unsigned long targetPositions[12];                  // holds the 12 stored positions loaded from EEPROM in steps
+
+int motorPPR                            = 200;      // pulses per revolution of the motor, needed to caclulate the motor speed
+int motorMinSpeedRPM                    = 25;      // minimum motor speed in rounds per minute
+int motorMaxSpeedRPM                    = 420;      // maximum motor speed in rounds per minute
+int motorCalibrationSpeedRPM            = 300;      // this speed is used during calibration in rpm
+int motorPulseDelay                     = 2000;     // the pulse delay we use in the MotorStep() function
+boolean motorDirection                  = LOW;      // LOW = clockwise rotation
 
 /*************************************************************************/
 
@@ -78,17 +85,20 @@ int CheckButtons();
 bool CheckEndStopA();
 bool CheckEndStopB();
 void DebugPrintEEPROM();
+int Delay2RPM( int delayValue );
 void DisplayClear();
 void DisplayMessage(int x, int y, String message);
 void EncoderReset();
 void LoadEEPROMData();
 void MotorChangeDirection();
 void MotorCalibrateEndStops();
+void MotorSettings();
 void MotorStep();
 void MotorMoveTo( unsigned long targetPosition );
 void MotorMoveToEndStopA();
 void MotorModeSwitch();
 void PrepareForMainLoop();
+int RPM2Delay( int rpm );
 void SavePosition();
 void UpdateDisplay();
 
@@ -124,9 +134,9 @@ void setup()
 
     /* SETUP ENDSTOP BUTTONS */
 
-    endStopA.attach(8, INPUT_PULLUP);
+    endStopA.attach(PIN_ENDSTOP_A, INPUT_PULLUP);
     endStopA.interval(25);
-    endStopB.attach(9, INPUT_PULLUP);
+    endStopB.attach(PIN_ENDSTOP_B, INPUT_PULLUP);
     endStopB.interval(25);
 
     /* MOTOR SETUP */
@@ -154,6 +164,11 @@ void setup()
         {
             MotorCalibrateEndStops();
         }
+        // if button 13 is pressed on startup then start motor setup
+        else if (buttonPressed == 13)
+        {
+            MotorSettings();
+        }
     }
 
     // reset last button pressed
@@ -177,7 +192,6 @@ void setup()
     {
         MotorStep();
     }
-
 
     PrepareForMainLoop();
 }
@@ -231,8 +245,8 @@ void loop()
         if (encoderPosition != 0)
         {
             motorDirection = encoderPosition > 0 ? LOW : HIGH;
-            motorSpeed = motorMinSpeed - abs(encoderPosition * 100);
-            if ( motorSpeed < motorMaxSpeed ) { motorSpeed = motorMaxSpeed; }
+            motorPulseDelay = RPM2Delay( motorMinSpeedRPM ) - abs(encoderPosition * 100);
+            if ( motorPulseDelay < RPM2Delay( motorMaxSpeedRPM ) ) { motorPulseDelay = RPM2Delay( motorMaxSpeedRPM ); }
             MotorStep();
 
             if ( CheckEndStopA() || CheckEndStopB() )
@@ -283,6 +297,31 @@ int CalculateEEPROMAddressForButton( byte buttonID )
     result += buttonID * sizeof(unsigned long);
 
     return result;
+}
+
+
+/*****************************************************
+ * RPM2Delay( int rpm )
+ * Calculate the delay value in microseconds we need to use in the MotorStep()
+ * function for the the rounds per minute
+ * 
+ * int rpm - the rounds pe rminute value we are aiming at
+ */
+int RPM2Delay( int rpm )
+{
+    return (60000000 / rpm) / motorPPR;
+}
+
+/*****************************************************
+ * Delay2RPM( int delayValue )
+ * Calculate the rounds per minute for a pulse delay value we use in
+ * MotorStep() function
+ * 
+ * int delayValue - the pulse delay value we want to calculate into rounds per minute
+ */
+int Delay2RPM( int delayValue )
+{
+    return (60 / (delayValue / 1000000)) / motorPPR;
 }
 
 
@@ -435,7 +474,7 @@ void MotorCalibrateEndStops()
     bool hasSecondEndStopTriggered = false;
 
     // set the speed of the motor to calibrationSpeed
-    motorSpeed = motorCalibrationSpeed;
+    motorPulseDelay = RPM2Delay( motorCalibrationSpeedRPM );
 
     // set direction to move to EndStop B
     motorDirection = LOW;
@@ -530,6 +569,18 @@ void MotorModeSwitch()
 
 
 /*****************************************************
+ *  MotorSettings()
+ */
+void MotorSettings()
+{
+    Serial.println("MotorSettings()");
+
+    DisplayClear();
+    DisplayMessage(0, 0, "Motor Setup");
+}
+
+
+/*****************************************************
  * MotorMoveTo( unsigned long targetPosition )
  * moves the motor until target position is met
  */
@@ -544,28 +595,65 @@ void MotorMoveTo( unsigned long targetPosition )
     DisplayMessage(0,30, String(targetPosition));
 
     // cancel if target position is 0 or 4294967295 which is
-    // the max value for insigned long
+    // the max value for unsigned long
     if ( targetPosition == 0 || targetPosition == 4294967295 )
     {
         Serial.println("CANCELLED: it seems no position has been saved to the last pressed button, yet.");
         return;
     } 
 
+    unsigned long stepsNeeded = abs( (long)currentStepPosition - (long)targetPosition );
+    unsigned long stepsDone = 0;
+    unsigned long stepsLeft = stepsNeeded;
+
     // set motor speed
-    motorSpeed = motorMaxSpeed;
+    int maxMotorPulseDelay      = RPM2Delay( motorMaxSpeedRPM );
+    int minMotorPulseDelay      = RPM2Delay( motorMinSpeedRPM );
+    int startMotorPulseDelay    = 15000;    // the starting speed delay
+    int accelLength             = 200;      // the number of steps for the acceleration phase
+    // the delay decrease per step during accellaration phase
+    int accelDelay              = abs(startMotorPulseDelay - maxMotorPulseDelay)/accelLength;
+
+    // Serial.print("stepsNeeded: ");
+    // Serial.println(stepsNeeded);
+    // Serial.print("maxMotorPulseDelay: ");
+    // Serial.println(maxMotorPulseDelay);
+    // Serial.print("minMotorPulseDelay: ");
+    // Serial.println(minMotorPulseDelay);
 
     // move motor as long as target is not reached
     while( currentStepPosition != targetPosition )
     {
+        motorPulseDelay = maxMotorPulseDelay;
+
+        if (stepsDone < accelLength )
+        {
+            motorPulseDelay = startMotorPulseDelay - (accelDelay * stepsDone);
+        }
+
+        if ( stepsDone > stepsNeeded - accelLength )
+        {
+            motorPulseDelay = maxMotorPulseDelay + (accelDelay * (accelLength-stepsLeft));
+        }
+
+        // always cap the max motor speed delay to maxMotorPulseDelay
+        if ( motorPulseDelay < maxMotorPulseDelay ) { motorPulseDelay = maxMotorPulseDelay; }
+
         // set the correct direction to reach the target position
         motorDirection = currentStepPosition < targetPosition ? LOW : HIGH;
         MotorStep();
+        stepsDone++;
+        stepsLeft--;
 
         if( CheckEndStopA() || CheckEndStopB() )
         {
             MotorChangeDirection();
         }
         
+        //Serial.print("stepsDone: ");
+        //Serial.println(stepsDone);
+        //Serial.print("motorPulseDelay: ");
+        //Serial.println(motorPulseDelay);
         //Serial.print(currentStepPosition);
         //Serial.print("/");
         //Serial.println(targetPosition);
@@ -584,7 +672,7 @@ void MotorMoveTo( unsigned long targetPosition )
 void MotorMoveToEndStopA()
 {
     motorDirection = HIGH;
-    motorSpeed = motorCalibrationSpeed;
+    motorPulseDelay = RPM2Delay( motorCalibrationSpeedRPM );
 
     while( CheckEndStopA() == false )
     {
@@ -602,9 +690,9 @@ void MotorStep()
 {
     digitalWrite(PIN_DRIVER_DIR, motorDirection);
     digitalWrite(PIN_DRIVER_PUL, HIGH);
-    delayMicroseconds(motorSpeed);
+    delayMicroseconds(20);
     digitalWrite(PIN_DRIVER_PUL, LOW);
-    delayMicroseconds(motorSpeed);
+    delayMicroseconds(motorPulseDelay - 20);
 
     if (motorDirection == HIGH)
     {
