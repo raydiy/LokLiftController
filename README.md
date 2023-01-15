@@ -14,11 +14,11 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 
 ## Erster Start
 
-Nachdem die Box mit Strom versorgt wird (5-12V für den Arduino Mega über Netzteil oder über USB) wird der Start-Bildschirm angezeigt.
+Nachdem die Box mit Strom versorgt wird (7-12V für den Arduino Mega über Netzteil Hohlbuchse oder 5V über USB) wird der Start-Bildschirm angezeigt.
 
 [BILD]
 
-Hier hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. Der Ablauf der 5 Sekunden wird duch die Punkte visualisiert.
+Im Start-Bildschirm hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. Der Ablauf der 5 Sekunden wird duch die Punkte visualisiert.
 Drückt man während dieser 5 Sekunden auf den roten Speicher-Schalter startet man die Streckenmessung.
 
 ## Streckenmessung
@@ -28,18 +28,18 @@ und speichert die gefahrene Strecke ab. Dies ist notwendig, um später die Posit
 
 Wenn die Streckenmessung startet fährt der Motor zunächst zum Endstopp B (Motor-Drehrichtung im Uhrzeigersinn).
 Sobald Endstopp B erreicht ist wechselt die Drehrichtung (entgegen Uhrzeigersinn) und fährt zurück bis Endstopp A ausgelöst wird.
-Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entsprechend angeordnet sind, dass genau die Abfolge wie beschrieben durchgeführt werden kann.
+Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entsprechend angeordnet sind, so dass genau die Abfolge wie beschrieben durchgeführt werden kann.
 
-Nachdem am Ende der Streckenmessung Enstopp A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstopp A nicht dauerhaft 
-ausgelöst wird, und die Wegstrecke wird gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
+Nachdem am Ende der Streckenmessung Endstopp A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstopp A nicht dauerhaft 
+ausgelöst wird. Die gemessene Wegstrecke wird automatisch gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
 Das Display gibt eine entsprechende Meldung aus.
 
 [BILD]
 
 ## Normaler Betrieb (ohne Streckenmessung)
 
-Wenn innerhalb der 5 Sekunden im Start-Bildschirm nichts gedrückt wird, fährt der Motor zunächst Endstopp A einmal an, damit der Motor weiß, 
-wo er sich befindet. Im Display erscheint dann "Kalibrierung ..."
+Wenn innerhalb der 5 Sekunden im Start-Bildschirm nichts gedrückt wird, fährt der Motor zunächst Endstopp A einmal an, damit der Controller weiß, 
+wo sich der Lift befindet. Im Display erscheint dann "Kalibrierung ..."
 
 [BILD]
 
@@ -59,7 +59,7 @@ Wurde auf dem Schalter noch keine Position gespeichert, erscheint nur eine entsp
 
 #### Lauf-Modus
 
-Mit dem Drehregler können Sie den Motor manuell bewegen. Nach dem Start der Box und sobald "Bahn frei!" auf dem Display erscheint, ist die 
+Mit dem Drehregler kannst du den Motor manuell bewegen. Nach dem Start der Box und sobald "Bahn frei!" auf dem Display erscheint, ist die 
 Motor-Steuerung im sog. "Lauf-Modus". Dieser ist für eine schnelle (grobe) Einstellung gedacht. Mit dem Drehregler steuert man die 
 Geschwindigkeit des Motors. Der Motor läuft immer weiter, bis er gestoppt wird. Sollte der Motor einen Endstopp auslösen, wird die Richtung 
 des Motors geändert.
@@ -72,8 +72,8 @@ den Drehregler drücken, dann ist der "Lauf-Modus" wieder aktiv. Im Display wird
 [BILD]
 [BILD]
 
-Wenn man den Motor-Modus wechselt, wird die Geschwindigkeit immer zurückgesetzt, damit dieser nicht automatisch los läuft. D.h. die 
-Geschwidniigkeit ist nach dem wechseln immer Null. Wie oben beschrieben kann die Geschwindigkeit nach dem Modus-Wechsel mit dem Drehregler 
+Wenn man den Motor-Modus wechselt, wird die Geschwindigkeit immer zurückgesetzt, damit dieser nicht automatisch losläuft. D.h. die 
+Geschwindigkeit ist nach dem Modus-Wwchsel immer Null. Wie oben beschrieben kann die Geschwindigkeit nach dem Modus-Wechsel mit dem Drehregler 
 gesteuert werden.
 
 #### Schritt-Modus
