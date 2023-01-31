@@ -22,16 +22,14 @@ Encoder rotaryEncoder(PIN_ROTARY_ENCODER_DT, PIN_ROTARY_ENCODER_CLK);
 /*************************************************************************/
 
 /********** PINS SWITCHES ************************************************/
-/*
-SWITCH 1: 44    SWITCH 7: 40
-SWITCH 2: 46    SWITCH 8: 42
-SWITCH 3: 48    SWITCH 9: 28
-SWITCH 4: 50    SWITCH 10: 30
-SWITCH 5: 36    SWITCH 11: 32
-SWITCH 6: 38    SWITCH 12: 34
-SWITCH 13: 52 (MODUS SWITCH)
-SWITCH 14: 23 (PIN_ROTARY_ENCODER_SW)
-*/
+// SWITCH 1: 44    SWITCH 7: 40
+// SWITCH 2: 46    SWITCH 8: 42
+// SWITCH 3: 48    SWITCH 9: 28
+// SWITCH 4: 50    SWITCH 10: 30
+// SWITCH 5: 36    SWITCH 11: 32
+// SWITCH 6: 38    SWITCH 12: 34
+// SWITCH 13: 52 (MODUS SWITCH)
+// SWITCH 14: 23 (PIN_ROTARY_ENCODER_SW)
 #define NUM_BUTTONS 14
 const uint8_t BUTTON_PINS[NUM_BUTTONS] = {44, 46, 48, 50, 36, 38, 40, 42, 28, 30, 32, 34, 52, PIN_ROTARY_ENCODER_SW};
 Bounce *buttons = new Bounce[NUM_BUTTONS];
@@ -54,24 +52,22 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 /*************************************************************************/
 
 /********** GLOBALS ******************************************************/
-//int motorMinSpeed                       = 2000;     // base speed of the motor when in DRIVE MODE
-//int motorMaxSpeed                       = 357;      // 357 is about 420 U/min
-//int motorCalibrationSpeed               = 500;      // 500 is about 300 U/min, this speed is used during calibration
-int buttonPressed                       = -1;       // the array ID of the button that has been pressed last
-unsigned long totalTrackSteps           = 0;        // the number of steps from one end stop to the the other end stop
-unsigned long startTime                 = 0;        // used for different situations where a startTime is needed
-unsigned long currentStepPosition       = 0;        // the current position of the motor in steps
-long encoderPosition                    = 0;        // the current encoder position
-long oldEncoderPosition                 = 0;        // old encoder position (needed for reading encoder changes)
-byte motorMode                          = 0;        // different motorModes: 1 continuos, 2 single step
-unsigned long targetPositions[12];                  // holds the 12 stored positions loaded from EEPROM in steps
+int BUTTON_PRESSED                      = -1;       // the array ID of the button that has been pressed last
+unsigned long TOTAL_TRACK_STEPS         = 0;        // [EEPROM] the number of steps from one end stop to the the other end stop
+unsigned long START_TIME                = 0;        // used for different situations where a START_TIME is needed
+unsigned long CURRENT_STEP_POSITION     = 0;        // the current position of the motor in steps
+long ENCODER_POSITION                   = 0;        // the current encoder position
+long OLD_ENCODER_POSITION               = 0;        // old encoder position (needed for reading encoder changes)
+unsigned long TARGET_POSITIONS[12];                 // [EEPROM] holds the 12 stored positions loaded from EEPROM in steps
 
-int motorPPR                            = 200;      // pulses per revolution of the motor, needed to caclulate the motor speed
-int motorMinSpeedRPM                    = 25;      // minimum motor speed in rounds per minute
-int motorMaxSpeedRPM                    = 420;      // maximum motor speed in rounds per minute
-int motorCalibrationSpeedRPM            = 300;      // this speed is used during calibration in rpm
-int motorPulseDelay                     = 2000;     // the pulse delay we use in the MotorStep() function
-boolean motorDirection                  = LOW;      // LOW = clockwise rotation
+byte MOTOR_MODE                         = 0;        // different motorModes: 1 continuos, 2 single step
+int MOTOR_PPR                           = 200;      // pulses per revolution of the motor, needed to caclulate the motor speed
+int MOTOR_PULSE_DELAY                   = 2000;     // the pulse delay we use in the MotorStep() function = stepping speed
+boolean MOTOR_DIRECTION                 = LOW;      // LOW = clockwise rotation
+int MOTOR_MIN_SPEED_RPM                 = 25;       // [EEPROM] minimum motor speed in rounds per minute
+int MOTOR_MAX_SPEED_RPM                 = 420;      // [EEPROM] maximum motor speed in rounds per minute
+int MOTOR_CALIBRATION_SPEED_RPM         = 300;      // [EEPROM] this speed is used during calibration in rpm
+unsigned int ACCEL_STEPS                = 400;      // [EEPROM] the number of steps for the acceleration phase in a move
 
 /*************************************************************************/
 
@@ -89,6 +85,8 @@ int Delay2RPM( int delayValue );
 void DisplayClear();
 void DisplayMessage(int x, int y, String message);
 void EncoderReset();
+int LerpCos(int from, int to, unsigned int deltaSteps);
+int LerpLinear(int from, int to, unsigned int deltaSteps);
 void LoadEEPROMData();
 void MotorChangeDirection();
 void MotorCalibrateEndStops();
@@ -101,6 +99,8 @@ void PrepareForMainLoop();
 int RPM2Delay( int rpm );
 void SavePosition();
 void UpdateDisplay();
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SETUP //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,31 +148,31 @@ void setup()
     digitalWrite(PIN_DRIVER_ENA, LOW);
 
     // check five seconds for button presses during startup to enter configuration modes
-    startTime = millis();
-    while ( millis() < startTime + 5000 )
+    START_TIME = millis();
+    while ( millis() < START_TIME + 5000 )
     { 
         unsigned long m = millis();
-        if ( m > startTime && m < startTime + 1000 ) { DisplayMessage(40, 30, "."); }
-        else if ( m > startTime && m < startTime + 2000 ) { DisplayMessage(40, 30, ".."); }
-        else if ( m > startTime && m < startTime + 3000 ) { DisplayMessage(40, 30, "..."); }
-        else if ( m > startTime && m < startTime + 4000 ) { DisplayMessage(40, 30, "...."); }
-        else if ( m > startTime && m < startTime + 5000 ) { DisplayMessage(40, 30, "....."); }
+        if ( m > START_TIME && m < START_TIME + 1000 ) { DisplayMessage(40, 30, "."); }
+        else if ( m > START_TIME && m < START_TIME + 2000 ) { DisplayMessage(40, 30, ".."); }
+        else if ( m > START_TIME && m < START_TIME + 3000 ) { DisplayMessage(40, 30, "..."); }
+        else if ( m > START_TIME && m < START_TIME + 4000 ) { DisplayMessage(40, 30, "...."); }
+        else if ( m > START_TIME && m < START_TIME + 5000 ) { DisplayMessage(40, 30, "....."); }
         CheckButtons();
 
-        // if button 12 is pressed on startup then start calibration
-        if (buttonPressed == 12)
+        // if button 12 (red button) is pressed on startup then start calibration
+        if (BUTTON_PRESSED == 12)
         {
             MotorCalibrateEndStops();
         }
-        // if button 13 is pressed on startup then start motor setup
-        else if (buttonPressed == 13)
+        // if button 13 (rotary knob) is pressed on startup then start motor setup
+        else if (BUTTON_PRESSED == 13)
         {
             MotorSettings();
         }
     }
 
     // reset last button pressed
-    buttonPressed = -1;
+    BUTTON_PRESSED = -1;
 
     DisplayClear();
     DisplayMessage(20, 0, "LokLift");
@@ -182,16 +182,25 @@ void setup()
     MotorMoveToEndStopA();
 
     // Now motor is at position 0
-    // from now on we need to track every step movement in currentStepPosition variable
+    // from now on we need to track every step movement in CURRENT_STEP_POSITION variable
     // which is handled in MotorStep(). so ALWAYS use MotorStep()
-    currentStepPosition = 0;
+    CURRENT_STEP_POSITION = 0;
 
-    // move back a little 10% of the totalTrackSteps
-    unsigned int tenPercentSteps = totalTrackSteps / 100 * 10;
+    // move back a little 10% of the TOTAL_TRACK_STEPS to not permanent press endstop A
+    unsigned int tenPercentSteps = round(TOTAL_TRACK_STEPS / 100.0 * 10.0);
+    
+    Serial.print("tenPercentSteps: ");
+    Serial.println(tenPercentSteps);
+    Serial.print("TOTAL_TRACK_STEPS: ");
+    Serial.println(TOTAL_TRACK_STEPS);
+
     for (size_t i = 0; i < tenPercentSteps; i++)
     {
         MotorStep();
     }
+
+    Serial.print("CURRENT_STEP_POSITION: ");
+    Serial.println(CURRENT_STEP_POSITION);
 
     PrepareForMainLoop();
 }
@@ -205,67 +214,70 @@ void loop()
     /* BUTTONS CHECK LOOP */
     CheckButtons();
 
-    encoderPosition = rotaryEncoder.read();
-    if (oldEncoderPosition != encoderPosition)
+    ENCODER_POSITION = rotaryEncoder.read();
+    if (OLD_ENCODER_POSITION != ENCODER_POSITION)
     {
-        oldEncoderPosition = encoderPosition;
-        Serial.println(encoderPosition);
+        OLD_ENCODER_POSITION = ENCODER_POSITION;
+        Serial.println(ENCODER_POSITION);
     }
 
     // if button 1 to 12 is pressed
     // drive motor to position
-    if ( buttonPressed >= 0 &&  buttonPressed <= 11 )
+    if ( BUTTON_PRESSED >= 0 &&  BUTTON_PRESSED <= 11 )
     {
         unsigned long targetPosition = 0;
-        EEPROM.get( CalculateEEPROMAddressForButton(buttonPressed), targetPosition );
+        EEPROM.get( CalculateEEPROMAddressForButton(BUTTON_PRESSED), targetPosition );
         MotorMoveTo( targetPosition );
-        buttonPressed = -1;
+        BUTTON_PRESSED = -1;
     }
 
     // check for button 12 to initiate saving curent position
-    else if (buttonPressed == 12)
+    else if (BUTTON_PRESSED == 12)
     {
         SavePosition();
     }
 
     // check for rotay encoder knob switch press
-    else if (buttonPressed == 13)
+    else if (BUTTON_PRESSED == 13)
     {
         MotorModeSwitch();
         EncoderReset();
-        buttonPressed = -1;
+        BUTTON_PRESSED = -1;
     }
 
     // MOTOR LOOP MODES
 
-    // CONTINOUS MOTOR MODE / DRIVE MODE / LAUF-MODUS
+    // CONTINOUS MOTOR MODE aka DRIVE MODE aka LAUF-MODUS
     // rotary encoder controls the speed
-    if (motorMode == 0)
+    if (MOTOR_MODE == 0)
     {
-        if (encoderPosition != 0)
+        if (ENCODER_POSITION != 0)
         {
-            motorDirection = encoderPosition > 0 ? LOW : HIGH;
-            motorPulseDelay = RPM2Delay( motorMinSpeedRPM ) - abs(encoderPosition * 100);
-            if ( motorPulseDelay < RPM2Delay( motorMaxSpeedRPM ) ) { motorPulseDelay = RPM2Delay( motorMaxSpeedRPM ); }
+            MOTOR_DIRECTION = ENCODER_POSITION > 0 ? LOW : HIGH;
+            MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MIN_SPEED_RPM ) - abs(ENCODER_POSITION * 100);
+            
+            // cap the delay to MOTOR_MAX_SPEED_RPM
+            // the samller the delay the faster the motor steps
+            if ( MOTOR_PULSE_DELAY < RPM2Delay( MOTOR_MAX_SPEED_RPM ) ) { MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MAX_SPEED_RPM ); }
             MotorStep();
 
             if ( CheckEndStopA() || CheckEndStopB() )
             {
-                encoderPosition = -encoderPosition;
-                oldEncoderPosition = -oldEncoderPosition;
-                rotaryEncoder.write( encoderPosition );
+                ENCODER_POSITION = -ENCODER_POSITION;
+                OLD_ENCODER_POSITION = -OLD_ENCODER_POSITION;
+                rotaryEncoder.write( ENCODER_POSITION );
             }
         }
     }
 
-    // STEP MOTOR MODE / STEP MODE / SCHRITT-MODUS
+    // STEP MOTOR MODE aka STEP MODE aka SCHRITT-MODUS
     // each encoder step is a single motor step
-    else if (motorMode == 1)
+    else if (MOTOR_MODE == 1)
     {
         // Single Motor Step Mode
-        if (encoderPosition != 0)
+        if (ENCODER_POSITION != 0)
         {
-            motorDirection = encoderPosition > 0 ? LOW : HIGH;
+            MOTOR_DIRECTION = ENCODER_POSITION > 0 ? LOW : HIGH;
             MotorStep();
             EncoderReset();
         }
@@ -309,7 +321,7 @@ int CalculateEEPROMAddressForButton( byte buttonID )
  */
 int RPM2Delay( int rpm )
 {
-    return (60000000 / rpm) / motorPPR;
+    return (60000000 / rpm) / MOTOR_PPR;
 }
 
 /*****************************************************
@@ -321,7 +333,7 @@ int RPM2Delay( int rpm )
  */
 int Delay2RPM( int delayValue )
 {
-    return (60 / (delayValue / 1000000)) / motorPPR;
+    return (60 / (delayValue / 1000000)) / MOTOR_PPR;
 }
 
 
@@ -340,7 +352,7 @@ int CheckButtons()
         {
             Serial.print("Button pressed: ");
             Serial.println(i);
-            buttonPressed = i;
+            BUTTON_PRESSED = i;
             return i;
         }
     }
@@ -350,7 +362,7 @@ int CheckButtons()
 
 
 /*****************************************************
- *  CheckButton(byte id)
+ * CheckButton(byte id)
  * returns true if the button with the id is pressed
  */
 bool CheckButton(byte id)
@@ -363,7 +375,7 @@ bool CheckButton(byte id)
     if (buttons[id].fell())
     {
         Serial.println("true");
-        buttonPressed = id;
+        BUTTON_PRESSED = id;
         return true;
     }
 
@@ -412,36 +424,36 @@ bool CheckEndStopB()
  */
 void EncoderReset()
 {
-    oldEncoderPosition = 0;
-    encoderPosition = 0;
+    OLD_ENCODER_POSITION = 0;
+    ENCODER_POSITION = 0;
     rotaryEncoder.write(0);
 }
 
 
 /*****************************************************
  * LoadEEPROMData()
- * Loads the datat from EEPROM to the appropriate variables
+ * Loads the data from EEPROM to the appropriate variables
  */
 void LoadEEPROMData()
 {
     Serial.println("LoadEEPROMData()");
 
     int address = 0;
-    EEPROM.get(address, totalTrackSteps);
-    address += sizeof(totalTrackSteps);
+    EEPROM.get(address, TOTAL_TRACK_STEPS);
+    address += sizeof(TOTAL_TRACK_STEPS);
 
-    Serial.print("totalTrackSteps: ");
-    Serial.println(totalTrackSteps);
+    Serial.print("TOTAL_TRACK_STEPS: ");
+    Serial.println(TOTAL_TRACK_STEPS);
 
     for (size_t i = 0; i < 12; i++)
     {
-        EEPROM.get(address, targetPositions[i]);
-        address += sizeof(targetPositions[i]);
+        EEPROM.get(address, TARGET_POSITIONS[i]);
+        address += sizeof(TARGET_POSITIONS[i]);
 
-        Serial.print("targetPositions[");
+        Serial.print("TARGET_POSITIONS[");
         Serial.print(i);
         Serial.print("]: ");
-        Serial.println(targetPositions[i]);
+        Serial.println(TARGET_POSITIONS[i]);
     }
 }
 
@@ -453,7 +465,7 @@ void LoadEEPROMData()
 void MotorChangeDirection()
 {
     Serial.println("MotorChangeDirection()");
-    motorDirection = !motorDirection;
+    MOTOR_DIRECTION = !MOTOR_DIRECTION;
 }
 
 /*****************************************************
@@ -466,7 +478,7 @@ void MotorCalibrateEndStops()
     DisplayClear();
     DisplayMessage(0, 0, "Strecke messen");
 
-    // read value from EEPROM
+    // read storedTotalTrackSteps value from EEPROM
     unsigned int storedTotalTrackSteps = 0;
     EEPROM.get(0, storedTotalTrackSteps);
 
@@ -474,57 +486,74 @@ void MotorCalibrateEndStops()
     bool hasSecondEndStopTriggered = false;
 
     // set the speed of the motor to calibrationSpeed
-    motorPulseDelay = RPM2Delay( motorCalibrationSpeedRPM );
-
+    int calibrationMotorPulseDelay = RPM2Delay( MOTOR_CALIBRATION_SPEED_RPM );
+    
     // set direction to move to EndStop B
-    motorDirection = LOW;
+    MOTOR_DIRECTION = LOW;
 
     // Goto first End Stop B
+    int stepsDone = 0;
     while (hasFirstEndStopTriggered == false)
     {
+        // add accleration
+        MOTOR_PULSE_DELAY = LerpLinear(15000, calibrationMotorPulseDelay, stepsDone);
         MotorStep();
+        stepsDone++;
+
         if ( CheckEndStopB() == true )
         {
             MotorChangeDirection();
             hasFirstEndStopTriggered = true;
+            TOTAL_TRACK_STEPS = 0;
             DisplayMessage(0, 10, "Endstop B");
+
         }
     }
 
-    // Goto End Stop A and record each step until enstop A is triggered
+    // Goto End Stop A and record each step until endstop A is triggered
+    stepsDone = 0;
     while (hasSecondEndStopTriggered == false)
     {
+        // add accleration
+        MOTOR_PULSE_DELAY = LerpLinear(15000, calibrationMotorPulseDelay, stepsDone);
         MotorStep();
-        totalTrackSteps++;
+        stepsDone++;
+
+        TOTAL_TRACK_STEPS++;
 
         if ( CheckEndStopA() == true )
         {
             MotorChangeDirection();
             hasSecondEndStopTriggered = true;
             DisplayMessage(0, 20, "Endstop A");
-            DisplayMessage(0, 30, String(totalTrackSteps));
+            DisplayMessage(0, 30, String(TOTAL_TRACK_STEPS));
         }
     }
 
     // Now motor is at position 0
-    // from now on we need to track every step movement in currentStepPosition variable
-    currentStepPosition = 0;
+    // from now on we need to track every step movement in CURRENT_STEP_POSITION variable
+    // this handles MotorStep(), so only use MotorStep() from now on
+    CURRENT_STEP_POSITION = 0;
 
-    // move back a little 10% of the totalTrackSteps
-    unsigned int tenPercentSteps = totalTrackSteps / 100 * 10;
+    // move back a little 10% of the TOTAL_TRACK_STEPS
+    stepsDone = 0;
+    unsigned int tenPercentSteps = TOTAL_TRACK_STEPS / 100 * 10;
     for (size_t i = 0; i < tenPercentSteps; i++)
     {
+        // add accleration
+        MOTOR_PULSE_DELAY = LerpLinear(15000, calibrationMotorPulseDelay, stepsDone);
         MotorStep();
+        stepsDone++;
     }
 
     Serial.println("Calibration finished");
     Serial.print("Total track steps:");
-    Serial.println(totalTrackSteps);
+    Serial.println(TOTAL_TRACK_STEPS);
 
     // if new value differs from stored value then save it to EEPROM
-    if (storedTotalTrackSteps != totalTrackSteps)
+    if (storedTotalTrackSteps != TOTAL_TRACK_STEPS)
     {
-        EEPROM.put(0, totalTrackSteps);
+        EEPROM.put(0, TOTAL_TRACK_STEPS);
     }
 
     // debug dump EEPROM to console
@@ -541,25 +570,25 @@ void MotorCalibrateEndStops()
  */
 void MotorModeSwitch()
 {
-    motorMode++;
-    if (motorMode >= 2)
+    MOTOR_MODE++;
+    if (MOTOR_MODE >= 2)
     {
-        motorMode = 0;
+        MOTOR_MODE = 0;
     }
 
     DisplayClear();
 
-    if ( motorMode == 0 )
+    if ( MOTOR_MODE == 0 )
     {
         DisplayMessage( 0,0, "Lauf-Modus");
     }
-    else if ( motorMode == 1 )
+    else if ( MOTOR_MODE == 1 )
     {
         DisplayMessage( 0,0, "Schritt-Modus");
     }
 
-    Serial.print("motorMode: ");
-    Serial.println(motorMode);
+    Serial.print("MOTOR_MODE: ");
+    Serial.println(MOTOR_MODE);
 
     delay(1500);
 
@@ -570,6 +599,7 @@ void MotorModeSwitch()
 
 /*****************************************************
  *  MotorSettings()
+ * // TODO Settings for motor movement speed
  */
 void MotorSettings()
 {
@@ -602,17 +632,25 @@ void MotorMoveTo( unsigned long targetPosition )
         return;
     } 
 
-    unsigned long stepsNeeded = abs( (long)currentStepPosition - (long)targetPosition );
+    unsigned long stepsNeeded = abs( (long)CURRENT_STEP_POSITION - (long)targetPosition );
     unsigned long stepsDone = 0;
+    unsigned long stepsDoneA = 0;
+    unsigned long stepsDoneB = 0;
     unsigned long stepsLeft = stepsNeeded;
+    bool isDecelarating = false;
+    
+    unsigned int accelerationSteps = ACCEL_STEPS;
+    if ( accelerationSteps * 2 > stepsNeeded )
+    {
+        accelerationSteps = round((float)stepsNeeded/2.0);
+    }
 
     // set motor speed
-    int maxMotorPulseDelay      = RPM2Delay( motorMaxSpeedRPM );
-    int minMotorPulseDelay      = RPM2Delay( motorMinSpeedRPM );
-    int startMotorPulseDelay    = 15000;    // the starting speed delay
-    int accelLength             = 200;      // the number of steps for the acceleration phase
+    int maxMotorPulseDelay      = RPM2Delay( MOTOR_MAX_SPEED_RPM );
+    int startMotorPulseDelay    = 15000;    // the starting speed delay, should be quite high to start slow (should this be adjustable? EEPROM candidate?)
+    
     // the delay decrease per step during accellaration phase
-    int accelDelay              = abs(startMotorPulseDelay - maxMotorPulseDelay)/accelLength;
+    //unsigned int accelDelay     = abs(startMotorPulseDelay - maxMotorPulseDelay)/ACCEL_STEPS;
 
     // Serial.print("stepsNeeded: ");
     // Serial.println(stepsNeeded);
@@ -622,25 +660,37 @@ void MotorMoveTo( unsigned long targetPosition )
     // Serial.println(minMotorPulseDelay);
 
     // move motor as long as target is not reached
-    while( currentStepPosition != targetPosition )
+    while( CURRENT_STEP_POSITION != targetPosition )
     {
-        motorPulseDelay = maxMotorPulseDelay;
-
-        if (stepsDone < accelLength )
+        // ACCELERATION PHASE
+        if ( stepsDone <= accelerationSteps && isDecelarating == false )
         {
-            motorPulseDelay = startMotorPulseDelay - (accelDelay * stepsDone);
+            MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, stepsDoneA);
+
+            // always cap the max motor speed delay to maxMotorPulseDelay
+            // the smaller the delay, the faster the motor steps, that is why we use < (not >)
+            if ( MOTOR_PULSE_DELAY < maxMotorPulseDelay ) { MOTOR_PULSE_DELAY = maxMotorPulseDelay; }
+            
+            stepsDoneA++;
         }
 
-        if ( stepsDone > stepsNeeded - accelLength )
+        // DECELERATION PHASE
+        else if ( stepsLeft <= accelerationSteps )
         {
-            motorPulseDelay = maxMotorPulseDelay + (accelDelay * (accelLength-stepsLeft));
-        }
+            if ( isDecelarating == false )
+            {
+                stepsDoneB = accelerationSteps;
+                isDecelarating = true;
+            }
 
-        // always cap the max motor speed delay to maxMotorPulseDelay
-        if ( motorPulseDelay < maxMotorPulseDelay ) { motorPulseDelay = maxMotorPulseDelay; }
+            MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, stepsDoneB);
+            if ( MOTOR_PULSE_DELAY > startMotorPulseDelay ) { MOTOR_PULSE_DELAY = startMotorPulseDelay; }
+            stepsDoneB--;
+        }
 
         // set the correct direction to reach the target position
-        motorDirection = currentStepPosition < targetPosition ? LOW : HIGH;
+        MOTOR_DIRECTION = CURRENT_STEP_POSITION < targetPosition ? LOW : HIGH;
+
         MotorStep();
         stepsDone++;
         stepsLeft--;
@@ -652,9 +702,9 @@ void MotorMoveTo( unsigned long targetPosition )
         
         //Serial.print("stepsDone: ");
         //Serial.println(stepsDone);
-        //Serial.print("motorPulseDelay: ");
-        //Serial.println(motorPulseDelay);
-        //Serial.print(currentStepPosition);
+        //Serial.print("MOTOR_PULSE_DELAY: ");
+        //Serial.println(MOTOR_PULSE_DELAY);
+        //Serial.print(CURRENT_STEP_POSITION);
         //Serial.print("/");
         //Serial.println(targetPosition);
     }
@@ -671,12 +721,22 @@ void MotorMoveTo( unsigned long targetPosition )
  */
 void MotorMoveToEndStopA()
 {
-    motorDirection = HIGH;
-    motorPulseDelay = RPM2Delay( motorCalibrationSpeedRPM );
+    Serial.println("MotorMoveToEndStopA");
+
+    MOTOR_DIRECTION = HIGH;
+
+    // set motor speed
+    int maxMotorPulseDelay      = RPM2Delay( MOTOR_CALIBRATION_SPEED_RPM );
+    int startMotorPulseDelay    = 15000;
+    unsigned long stepsDone     = 0;
 
     while( CheckEndStopA() == false )
     {
+        //MOTOR_PULSE_DELAY = LerpCos(startMotorPulseDelay, maxMotorPulseDelay, stepsDone);
+        MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, stepsDone);
+
         MotorStep();
+        stepsDone++;
     }
     MotorChangeDirection();
 }
@@ -688,23 +748,23 @@ void MotorMoveToEndStopA()
  */
 void MotorStep()
 {
-    digitalWrite(PIN_DRIVER_DIR, motorDirection);
+    digitalWrite(PIN_DRIVER_DIR, MOTOR_DIRECTION);
     digitalWrite(PIN_DRIVER_PUL, HIGH);
     delayMicroseconds(20);
     digitalWrite(PIN_DRIVER_PUL, LOW);
-    delayMicroseconds(motorPulseDelay - 20);
+    delayMicroseconds(MOTOR_PULSE_DELAY - 20);
 
-    if (motorDirection == HIGH)
+    if (MOTOR_DIRECTION == HIGH)
     {
-        currentStepPosition--;
+        CURRENT_STEP_POSITION--;
     }
     else
     {
-        currentStepPosition++;
+        CURRENT_STEP_POSITION++;
     }
 
-    //Serial.print("currentStepPosition: ");
-    //Serial.println(currentStepPosition);
+    //Serial.print("CURRENT_STEP_POSITION: ");
+    //Serial.println(CURRENT_STEP_POSITION);
 }
 
 
@@ -717,9 +777,9 @@ void PrepareForMainLoop()
     DisplayClear();
     DisplayMessage(0, 0, "Bahn frei!");
     DisplayMessage(0, 20, "Position:");
-    DisplayMessage(0, 30, String(currentStepPosition));
+    DisplayMessage(0, 30, String(CURRENT_STEP_POSITION));
 
-    buttonPressed = -1;
+    BUTTON_PRESSED = -1;
     EncoderReset();
 }
 
@@ -736,9 +796,66 @@ void UpdateDisplay()
     display.setCursor(0, 0);
     display.println("Position: ");
     display.setCursor(0, 100);
-    display.println( String(currentStepPosition ));
+    display.println( String(CURRENT_STEP_POSITION ));
 
     display.display();
+}
+
+/*****************************************************
+ * LerpCos(int from, int to, int deltaSteps)
+ * interpolates a values with a cosinus curve
+ * 
+ * from the starting value
+ * to: the final value
+ * deltaSteps: the number of steps when called in a loop = loop counter
+ * 
+ * Example: (in a loop)
+ * MOTOR_PULSE_DELAY = LerpCos(startMotorPulseDelay, maxMotorPulseDelay, loopCounter);
+ */
+int LerpCos(int from, int to, unsigned int deltaSteps)
+{
+    if (deltaSteps >= ACCEL_STEPS )
+    {
+        return to;
+    }
+
+    // how many degrees from 0 to 90 correspüonds the currenmt deltaSteps
+    int diffSteps = abs(ACCEL_STEPS - deltaSteps);
+    double diffDegree = (90.0/(double)ACCEL_STEPS) * (double)diffSteps;
+
+    // convert degree to radians
+    double pi = M_PI;
+    double radian = diffDegree * pi/180.0;
+    double factor = cos(radian);
+
+    int diffValue = to - from;
+    int result = from + round((float)diffValue * factor);
+
+    return result;
+}
+
+/*****************************************************
+ * LerpLinear(int from, int to, int deltaSteps)
+ * interpolates a values with in a linear manner
+ * 
+ * from the starting value
+ * to: the final value
+ * deltaSteps: the number of steps when called in a loop = loop counter
+ * 
+ * Example: (in a loop)
+ * MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, loopCounter);
+ */
+int LerpLinear(int from, int to, unsigned int deltaSteps)
+{
+    if (deltaSteps > ACCEL_STEPS )
+    {
+        return to;
+    }
+
+    int diffValue = to - from;
+    float valuePerStep = (float)diffValue / (float)(ACCEL_STEPS);
+
+    return from + ceil((float)deltaSteps * valuePerStep);
 }
 
 
@@ -774,34 +891,34 @@ void SavePosition()
     // reset the encoder to position zero and 
     // resetthe last button press
     EncoderReset();
-    buttonPressed = -1;
+    BUTTON_PRESSED = -1;
 
     // display a message
     DisplayClear();
     DisplayMessage(0, 0, "Position");
     DisplayMessage(0, 10, "Speichern?");
-    DisplayMessage(0, 20, String(currentStepPosition));
+    DisplayMessage(0, 20, String(CURRENT_STEP_POSITION));
     
     // loop until a button is pressed to store the current positon to
     // or to cancel storing the position
-    while (buttonPressed == -1)
+    while (BUTTON_PRESSED == -1)
     {
         // check for button press
         CheckButtons();
-        if ( buttonPressed >= 0 && buttonPressed <= 11 )
+        if ( BUTTON_PRESSED >= 0 && BUTTON_PRESSED <= 11 )
         {
             // store position
-            EEPROM.put( CalculateEEPROMAddressForButton(buttonPressed), currentStepPosition );
+            EEPROM.put( CalculateEEPROMAddressForButton(BUTTON_PRESSED), CURRENT_STEP_POSITION );
 
             // display message
             DisplayMessage(0, 30, "Gespeichert");
             DisplayMessage(0, 40, "Schalter: ");
-            DisplayMessage(60, 40, String(buttonPressed+1));
+            DisplayMessage(60, 40, String(BUTTON_PRESSED+1));
             delay(2000);
         }
 
         // if button 12 or 13 is pressed: cancel
-        else if (buttonPressed >= 12)
+        else if (BUTTON_PRESSED >= 12)
         {
             // cancel save
             DisplayMessage(0, 30, "Abbruch");
@@ -809,7 +926,7 @@ void SavePosition()
         }
     }
 
-    // initialise displayreset last buttonPressed 
+    // initialise displayreset last BUTTON_PRESSED 
     // and back to main loop
     PrepareForMainLoop();
 
