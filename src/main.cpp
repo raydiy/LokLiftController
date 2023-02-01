@@ -132,7 +132,7 @@ void setup()
     /* ROTARY ENCODER SETUP */
 
     rotaryEncoder.setAccelerationEnabled(true);
-    rotaryEncoder.setDoubleClickEnabled(false);
+    rotaryEncoder.setDoubleClickEnabled(true);
     rotaryEncoder.setLongPressRepeatEnabled(false);
 
     /* Interrupt Timer Setup */
@@ -248,7 +248,23 @@ void loop()
     {
         unsigned long targetPosition = 0;
         EEPROM.get( CalculateEEPROMAddressForButton(BUTTON_PRESSED), targetPosition );
-        MotorMoveTo( targetPosition );
+
+        // if target position is in the total track steps range
+        // then move to that target 
+        if ( targetPosition <= TOTAL_TRACK_STEPS )
+        {
+            MotorMoveTo( targetPosition );
+        }
+
+        // display an error message if target is not in
+        // total track range
+        else
+        {
+            DisplayClear();
+            DisplayMessage(0,0, "Target out of range!");
+            delay(4000);
+            PrepareForMainLoop();
+        }
         BUTTON_PRESSED = -1;
     }
 
@@ -266,6 +282,19 @@ void loop()
         BUTTON_PRESSED = -1;
     }
 
+    // check for double click on rotary encoder knob
+    // if double click detected, opens the MotorSettings menu
+    switch (rotaryEncoder.getButton())
+    {
+        case Button::DoubleClicked:
+            Serial.println("Encoder double clicked");
+            MotorSettings();
+            PrepareForMainLoop();
+            break;
+        default:
+            break;
+    }
+
 
     /* MOTOR LOOP MODES */ 
 
@@ -280,10 +309,10 @@ void loop()
         {
             ENCODER_VALUE = rotaryEncoder.getAccumulate();
 
-            Serial.print("ENCODER_CHANGE ");
-            Serial.print(ENCODER_CHANGE);
-            Serial.print(" -> ");
-            Serial.println(ENCODER_VALUE);
+            //Serial.print("ENCODER_CHANGE ");
+            //Serial.print(ENCODER_CHANGE);
+            //Serial.print(" -> ");
+            //Serial.println(ENCODER_VALUE);
 
             MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MIN_SPEED_RPM ) - abs(ENCODER_VALUE * 100);
             
@@ -542,7 +571,7 @@ void LoadEEPROMData()
     address += sizeof(ACCEL_STEPS);
 
     // MOTOR_PPR
-    //EEPROM.get(address, MOTOR_PPR);
+    EEPROM.get(address, MOTOR_PPR);
     Serial.print("    MOTOR_PPR: ");
     Serial.print(MOTOR_PPR);
     Serial.print(" | ");
