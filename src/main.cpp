@@ -123,7 +123,7 @@ void setup()
     DisplayMessage(10, 10, "Controller");
     DisplayMessage(0, 25, "Starte");
     display.drawChar(0, 40, 0x2A, BLACK, WHITE, 1);
-    display.drawChar(78, 40, 0x17, BLACK, WHITE, 1);
+    display.drawChar(78, 40, 0x12, BLACK, WHITE, 1);
 
     // Load Data from EEPROM
     //DebugPrintEEPROM();
@@ -172,11 +172,11 @@ void setup()
     while ( millis() < START_TIME + 5000 )
     { 
         unsigned long m = millis();
-        if ( m > START_TIME && m < START_TIME + 1000 ) { DisplayMessage(40, 30, "."); }
-        else if ( m > START_TIME && m < START_TIME + 2000 ) { DisplayMessage(40, 30, ".."); }
-        else if ( m > START_TIME && m < START_TIME + 3000 ) { DisplayMessage(40, 30, "..."); }
-        else if ( m > START_TIME && m < START_TIME + 4000 ) { DisplayMessage(40, 30, "...."); }
-        else if ( m > START_TIME && m < START_TIME + 5000 ) { DisplayMessage(40, 30, "....."); }
+        if ( m > START_TIME && m < START_TIME + 1000 ) { DisplayMessage(40, 25, "."); }
+        else if ( m > START_TIME && m < START_TIME + 2000 ) { DisplayMessage(40, 25, ".."); }
+        else if ( m > START_TIME && m < START_TIME + 3000 ) { DisplayMessage(40, 25, "..."); }
+        else if ( m > START_TIME && m < START_TIME + 4000 ) { DisplayMessage(40, 25, "...."); }
+        else if ( m > START_TIME && m < START_TIME + 5000 ) { DisplayMessage(40, 25, "....."); }
         CheckButtons();
 
         // if button 12 (red button) is pressed on startup then start calibration
@@ -541,6 +541,13 @@ void LoadEEPROMData()
     Serial.println(address);
     address += sizeof(ACCEL_STEPS);
 
+    // MOTOR_PPR
+    //EEPROM.get(address, MOTOR_PPR);
+    Serial.print("    MOTOR_PPR: ");
+    Serial.print(MOTOR_PPR);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_PPR);
 }
 
 
@@ -695,29 +702,28 @@ void MotorModeSwitch()
  */
 void DrawMotorSettings( byte selectedCol, byte selectedRow )
 {
-    //Serial.print("DrawMotorSettings: ");
-    //Serial.print(selectedCol);
-    //Serial.print("/");
-    //Serial.println(selectedRow);
-
     DisplayClear();
 
-    boolean selection[2][4] = {
-        {false, false, false, false},
-        {false, false, false, false}
+    boolean selection[2][5] = {
+        {false, false, false, false, false},
+        {false, false, false, false, false}
     };
 
     selection[selectedCol][selectedRow] = true;
     
+    display.drawChar(78, 40, 0x1A, BLACK, WHITE, 1);
+
     DisplayMessage(0, 0, "MaxRPM:", selection[0][0]);
     DisplayMessage(0, 10, "MinRPM:", selection[0][1]);
     DisplayMessage(0, 20, "CalRPM:", selection[0][2]);
     DisplayMessage(0, 30, "AccStp:", selection[0][3]);
-    
+    DisplayMessage(0, 40, "MotPPR:", selection[0][4]);
+
     DisplayMessage(45, 0, String(MOTOR_MAX_SPEED_RPM), selection[1][0]);
     DisplayMessage(45, 10, String(MOTOR_MIN_SPEED_RPM), selection[1][1]);
     DisplayMessage(45, 20, String(MOTOR_CALIBRATION_SPEED_RPM), selection[1][2]);
     DisplayMessage(45, 30, String(ACCEL_STEPS), selection[1][3]);
+    DisplayMessage(45, 40, String(MOTOR_PPR), selection[1][4]);
 }
 
 /*****************************************************
@@ -734,10 +740,11 @@ void MotorSettings()
 
     // store these values for later camparisons to check
     // if writing to EEPROM is neccessery at all
-    unsigned int oldMotorMinSpeedRPM            =  MOTOR_MIN_SPEED_RPM;
-    unsigned int oldMotorMaxSpeedRPM            =  MOTOR_MAX_SPEED_RPM;
-    unsigned int oldMotorCalibrationSpeedRPM    =  MOTOR_CALIBRATION_SPEED_RPM;
-    unsigned int oldAccelSteps                  =  ACCEL_STEPS;
+    unsigned int oldMotorMinSpeedRPM            = MOTOR_MIN_SPEED_RPM;
+    unsigned int oldMotorMaxSpeedRPM            = MOTOR_MAX_SPEED_RPM;
+    unsigned int oldMotorCalibrationSpeedRPM    = MOTOR_CALIBRATION_SPEED_RPM;
+    unsigned int oldAccelSteps                  = ACCEL_STEPS;
+    unsigned int oldMotorPPR                    = MOTOR_PPR;
 
     // Draw the menu
     DrawMotorSettings( selectedCol, selectedRow );
@@ -757,9 +764,9 @@ void MotorSettings()
                 Serial.print("ENCODER_CHANGE: ");
                 Serial.println(ENCODER_CHANGE);
 
-                if (selectedRow == 0 && ENCODER_CHANGE < 0){ selectedRow = 4;}
+                if (selectedRow == 0 && ENCODER_CHANGE < 0){ selectedRow = 5;}
                 selectedRow = selectedRow + ENCODER_CHANGE;
-                if (selectedRow > 3){ selectedRow = 0;}
+                if (selectedRow > 4){ selectedRow = 0;}
 
                 Serial.print("selectedRow: ");
                 Serial.println(selectedRow);
@@ -784,27 +791,24 @@ void MotorSettings()
 
                 if ( selectedRow == 0 ){ 
                     MOTOR_MAX_SPEED_RPM = MOTOR_MAX_SPEED_RPM + calcValueChange;
-                    if ( MOTOR_MAX_SPEED_RPM < 5 )
-                    {
-                        MOTOR_MAX_SPEED_RPM = 5;
-                    }
+                    MOTOR_MAX_SPEED_RPM = constrain(MOTOR_MAX_SPEED_RPM, 5, 1000);
+
                 }
                 else if ( selectedRow == 1 ){ 
                     MOTOR_MIN_SPEED_RPM = MOTOR_MIN_SPEED_RPM + calcValueChange;
-                    if ( MOTOR_MIN_SPEED_RPM < 5 )
-                    {
-                        MOTOR_MIN_SPEED_RPM = 5;
-                    }
+                    MOTOR_MIN_SPEED_RPM = constrain(MOTOR_MIN_SPEED_RPM, 5, 1000);
                 }
                 else if ( selectedRow == 2 ){ 
                     MOTOR_CALIBRATION_SPEED_RPM = MOTOR_CALIBRATION_SPEED_RPM + calcValueChange;
-                    if ( MOTOR_CALIBRATION_SPEED_RPM < 5 )
-                    {
-                        MOTOR_CALIBRATION_SPEED_RPM = 5;
-                    }
+                    MOTOR_CALIBRATION_SPEED_RPM = constrain(MOTOR_CALIBRATION_SPEED_RPM, 5, 1000);
                 }
                 else if ( selectedRow == 3 ){ 
                     ACCEL_STEPS = ACCEL_STEPS + calcValueChange;
+                    ACCEL_STEPS = constrain(ACCEL_STEPS, 0, 2000);
+                }
+                else if ( selectedRow == 4 ){ 
+                    MOTOR_PPR = MOTOR_PPR + calcValueChange;
+                    MOTOR_PPR = constrain(MOTOR_PPR, 100, 2000);
                 }
 
                 DrawMotorSettings( selectedCol, selectedRow );
@@ -842,7 +846,8 @@ void MotorSettings()
                 oldMotorMinSpeedRPM != MOTOR_MIN_SPEED_RPM || 
                 oldMotorMaxSpeedRPM != MOTOR_MAX_SPEED_RPM || 
                 oldMotorCalibrationSpeedRPM != MOTOR_CALIBRATION_SPEED_RPM ||
-                oldAccelSteps != ACCEL_STEPS
+                oldAccelSteps != ACCEL_STEPS ||
+                oldMotorPPR != MOTOR_PPR
             )
             {
                 SaveMotorSettings();
@@ -1230,6 +1235,14 @@ void SaveMotorSettings()
     Serial.print(" | ");
     Serial.println(address);
     address += sizeof(ACCEL_STEPS);
+
+    // MOTOR_PPR
+    EEPROM.put( address, MOTOR_PPR );
+    Serial.print("    Saved MOTOR_PPR: ");
+    Serial.print(MOTOR_PPR);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_PPR);
 }
 
 
