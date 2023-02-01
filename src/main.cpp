@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <Encoder.h>
+#include <ClickEncoder.h>
+#include <TimerOne.h>
 #include <Bounce2.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -18,7 +19,8 @@
 #define PIN_ROTARY_ENCODER_DT 25  // DT
 #define PIN_ROTARY_ENCODER_SW 23  // Switch
 // erzeuge ein neues Encoder Objekt
-Encoder rotaryEncoder(PIN_ROTARY_ENCODER_DT, PIN_ROTARY_ENCODER_CLK);
+static ClickEncoder rotaryEncoder(PIN_ROTARY_ENCODER_DT, PIN_ROTARY_ENCODER_CLK, PIN_ROTARY_ENCODER_SW, 2, LOW);
+static TimerOne timer;
 /*************************************************************************/
 
 /********** PINS SWITCHES ************************************************/
@@ -56,8 +58,9 @@ int BUTTON_PRESSED                      = -1;       // the array ID of the butto
 unsigned long TOTAL_TRACK_STEPS         = 0;        // [EEPROM] the number of steps from one end stop to the the other end stop
 unsigned long START_TIME                = 0;        // used for different situations where a START_TIME is needed
 unsigned long CURRENT_STEP_POSITION     = 0;        // the current position of the motor in steps
-long ENCODER_POSITION                   = 0;        // the current encoder position
-long OLD_ENCODER_POSITION               = 0;        // old encoder position (needed for reading encoder changes)
+int16_t ENCODER_CHANGE                  = 0;        // the current encoder change value
+int16_t ENCODER_VALUE                   = 0;        // the current accumulated encoder value
+int16_t ENCODER_VALUE_OLD               = 0;        // old encoder position (needed for reading encoder changes)
 unsigned long TARGET_POSITIONS[12];                 // [EEPROM] holds the 12 stored positions loaded from EEPROM in steps
 
 byte MOTOR_MODE                         = 0;        // different motorModes: 1 continuos, 2 single step
@@ -83,8 +86,10 @@ bool CheckEndStopB();
 void DebugPrintEEPROM();
 int Delay2RPM( int delayValue );
 void DisplayClear();
-void DisplayMessage(int x, int y, String message);
+void DisplayMessage(int x, int y, String message, bool inverted=false);
+void DrawMotorSettings( byte selectedCol, byte selectedRow );
 void EncoderReset();
+void InterruptTimerCallback();
 int LerpCos(int from, int to, unsigned int deltaSteps);
 int LerpLinear(int from, int to, unsigned int deltaSteps);
 void LoadEEPROMData();
@@ -101,7 +106,6 @@ void SavePosition();
 void UpdateDisplay();
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SETUP //////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -113,15 +117,28 @@ void setup()
     /* LCD DISPLAY SETUP */
     display.begin();
     display.setContrast(57);
-    
+
     DisplayClear();
     DisplayMessage(20, 0, "LokLift");
     DisplayMessage(10, 10, "Controller");
-    DisplayMessage(0, 30, "Starte");
+    DisplayMessage(0, 25, "Starte");
+    display.drawChar(0, 40, 0x2A, BLACK, WHITE, 1);
+    display.drawChar(78, 40, 0x17, BLACK, WHITE, 1);
 
     // Load Data from EEPROM
     //DebugPrintEEPROM();
     LoadEEPROMData();
+
+    /* ROTARY ENCODER SETUP */
+
+    rotaryEncoder.setAccelerationEnabled(true);
+    rotaryEncoder.setDoubleClickEnabled(false);
+    rotaryEncoder.setLongPressRepeatEnabled(false);
+
+    /* Interrupt Timer Setup */
+
+    timer.initialize(1000);
+    timer.attachInterrupt(InterruptTimerCallback); 
 
     /* BUTTONS SETUP */
 
@@ -148,6 +165,9 @@ void setup()
     digitalWrite(PIN_DRIVER_ENA, LOW);
 
     // check five seconds for button presses during startup to enter configuration modes
+    bool gotoMotorCalibrateEndStops = false;
+    bool gotoMotorSettings = false;
+
     START_TIME = millis();
     while ( millis() < START_TIME + 5000 )
     { 
@@ -162,17 +182,22 @@ void setup()
         // if button 12 (red button) is pressed on startup then start calibration
         if (BUTTON_PRESSED == 12)
         {
-            MotorCalibrateEndStops();
+            gotoMotorCalibrateEndStops = true;
+            break;
         }
         // if button 13 (rotary knob) is pressed on startup then start motor setup
         else if (BUTTON_PRESSED == 13)
         {
-            MotorSettings();
+            gotoMotorSettings = true;
+            break;
         }
     }
 
     // reset last button pressed
     BUTTON_PRESSED = -1;
+
+    if ( gotoMotorCalibrateEndStops ) { MotorCalibrateEndStops(); }
+    else if ( gotoMotorSettings ) { MotorSettings(); }
 
     DisplayClear();
     DisplayMessage(20, 0, "LokLift");
@@ -203,6 +228,8 @@ void setup()
     Serial.println(CURRENT_STEP_POSITION);
 
     PrepareForMainLoop();
+
+    MOTOR_DIRECTION = HIGH;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,14 +239,8 @@ void setup()
 void loop()
 {
     /* BUTTONS CHECK LOOP */
-    CheckButtons();
 
-    ENCODER_POSITION = rotaryEncoder.read();
-    if (OLD_ENCODER_POSITION != ENCODER_POSITION)
-    {
-        OLD_ENCODER_POSITION = ENCODER_POSITION;
-        Serial.println(ENCODER_POSITION);
-    }
+    CheckButtons();
 
     // if button 1 to 12 is pressed
     // drive motor to position
@@ -238,34 +259,60 @@ void loop()
     }
 
     // check for rotay encoder knob switch press
+    // to switch motor mode
     else if (BUTTON_PRESSED == 13)
     {
         MotorModeSwitch();
-        EncoderReset();
         BUTTON_PRESSED = -1;
     }
 
-    // MOTOR LOOP MODES
+
+    /* MOTOR LOOP MODES */ 
+
+    // get encoder values
+    ENCODER_CHANGE = rotaryEncoder.getIncrement();
 
     // CONTINOUS MOTOR MODE aka DRIVE MODE aka LAUF-MODUS
     // rotary encoder controls the speed
     if (MOTOR_MODE == 0)
     {
-        if (ENCODER_POSITION != 0)
+        if (ENCODER_CHANGE != 0)
         {
-            MOTOR_DIRECTION = ENCODER_POSITION > 0 ? LOW : HIGH;
-            MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MIN_SPEED_RPM ) - abs(ENCODER_POSITION * 100);
+            ENCODER_VALUE = rotaryEncoder.getAccumulate();
+
+            Serial.print("ENCODER_CHANGE ");
+            Serial.print(ENCODER_CHANGE);
+            Serial.print(" -> ");
+            Serial.println(ENCODER_VALUE);
+
+            MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MIN_SPEED_RPM ) - abs(ENCODER_VALUE * 100);
             
+            if ( ENCODER_CHANGE < 0 && ENCODER_VALUE_OLD >= 0 && ENCODER_VALUE < 0 )
+            {
+                MotorChangeDirection();
+            }
+            else if ( ENCODER_CHANGE > 0 && ENCODER_VALUE_OLD <= 0 && ENCODER_VALUE > 0 )
+            {
+                MotorChangeDirection();
+            }
+            
+            ENCODER_VALUE_OLD = ENCODER_VALUE;
+
+        }
+
+        // Step the motor if ENCODER_VALUE is not 0
+
+        if (ENCODER_VALUE != 0)
+        {
             // cap the delay to MOTOR_MAX_SPEED_RPM
             // the samller the delay the faster the motor steps
             if ( MOTOR_PULSE_DELAY < RPM2Delay( MOTOR_MAX_SPEED_RPM ) ) { MOTOR_PULSE_DELAY = RPM2Delay( MOTOR_MAX_SPEED_RPM ); }
+            
             MotorStep();
 
             if ( CheckEndStopA() || CheckEndStopB() )
             {
-                ENCODER_POSITION = -ENCODER_POSITION;
-                OLD_ENCODER_POSITION = -OLD_ENCODER_POSITION;
-                rotaryEncoder.write( ENCODER_POSITION );
+                MotorChangeDirection();
             }
         }
     }
@@ -275,11 +322,10 @@ void loop()
     else if (MOTOR_MODE == 1)
     {
         // Single Motor Step Mode
-        if (ENCODER_POSITION != 0)
+        if (ENCODER_CHANGE != 0)
         {
-            MOTOR_DIRECTION = ENCODER_POSITION > 0 ? LOW : HIGH;
+            MOTOR_DIRECTION = ENCODER_CHANGE > 0 ? LOW : HIGH;
             MotorStep();
-            EncoderReset();
         }
     }
 }
@@ -424,9 +470,11 @@ bool CheckEndStopB()
  */
 void EncoderReset()
 {
-    OLD_ENCODER_POSITION = 0;
-    ENCODER_POSITION = 0;
-    rotaryEncoder.write(0);
+    Serial.println("EncoderReset()");
+    rotaryEncoder.reset();
+    ENCODER_CHANGE = 0;
+    ENCODER_VALUE = 0;
+    ENCODER_VALUE_OLD = 0;
 }
 
 
@@ -464,9 +512,10 @@ void LoadEEPROMData()
  */
 void MotorChangeDirection()
 {
-    Serial.println("MotorChangeDirection()");
+    //Serial.println("MotorChangeDirection()");
     MOTOR_DIRECTION = !MOTOR_DIRECTION;
 }
+
 
 /*****************************************************
  *  MotorCalibrateEndStops()
@@ -581,6 +630,7 @@ void MotorModeSwitch()
     if ( MOTOR_MODE == 0 )
     {
         DisplayMessage( 0,0, "Lauf-Modus");
+        MOTOR_DIRECTION = HIGH;
     }
     else if ( MOTOR_MODE == 1 )
     {
@@ -596,17 +646,157 @@ void MotorModeSwitch()
     PrepareForMainLoop();
 }
 
+/*****************************************************
+ * DrawMotorSettings( byte selectedCol, byte selectedRow )
+ * 
+ * Draw the motor settings menu
+ * selectedCol is the currently selected column of the menu
+ * selectedRow is the currently selected row of the menu
+ * With these two values we can select a cell in the menu
+ * that can be drawn inverted
+ */
+void DrawMotorSettings( byte selectedCol, byte selectedRow )
+{
+    //Serial.print("DrawMotorSettings: ");
+    //Serial.print(selectedCol);
+    //Serial.print("/");
+    //Serial.println(selectedRow);
+
+    DisplayClear();
+
+    boolean selection[2][4] = {
+        {false, false, false, false},
+        {false, false, false, false}
+    };
+
+    selection[selectedCol][selectedRow] = true;
+    
+    DisplayMessage(0, 0, "MaxRPM:", selection[0][0]);
+    DisplayMessage(0, 10, "MinRPM:", selection[0][1]);
+    DisplayMessage(0, 20, "CalRPM:", selection[0][2]);
+    DisplayMessage(0, 30, "AccStp:", selection[0][3]);
+    
+    DisplayMessage(45, 0, String(MOTOR_MAX_SPEED_RPM), selection[1][0]);
+    DisplayMessage(45, 10, String(MOTOR_MIN_SPEED_RPM), selection[1][1]);
+    DisplayMessage(45, 20, String(MOTOR_CALIBRATION_SPEED_RPM), selection[1][2]);
+    DisplayMessage(45, 30, String(ACCEL_STEPS), selection[1][3]);
+}
 
 /*****************************************************
- *  MotorSettings()
- * // TODO Settings for motor movement speed
+ * MotorSettings()
+ * Setup some values for the motor settings controlled 
+ * with the rotary encoder
  */
 void MotorSettings()
 {
-    Serial.println("MotorSettings()");
+    byte selectedCol = 0;
+    byte selectedRow = 0;
+    EncoderReset();
+    rotaryEncoder.setAccelerationEnabled(false);
 
-    DisplayClear();
-    DisplayMessage(0, 0, "Motor Setup");
+    DrawMotorSettings( selectedCol, selectedRow );
+
+    while( true )
+    {
+
+        // First column is selected
+        // here we can select the row with the encoder
+        if ( selectedCol == 0 )
+        {
+            ENCODER_CHANGE = rotaryEncoder.getIncrement();
+            ENCODER_VALUE = rotaryEncoder.getAccumulate();
+
+            if ( ENCODER_CHANGE != 0 )
+            {
+                Serial.print("ENCODER_CHANGE: ");
+                Serial.println(ENCODER_CHANGE);
+
+                if (selectedRow == 0 && ENCODER_CHANGE < 0){ selectedRow = 4;}
+                selectedRow = selectedRow + ENCODER_CHANGE;
+                if (selectedRow > 3){ selectedRow = 0;}
+
+                Serial.print("selectedRow: ");
+                Serial.println(selectedRow);
+
+                DrawMotorSettings( selectedCol, selectedRow );
+            }
+        }
+
+        // Second column is selected
+        // here we can adjust the selected value
+        else if ( selectedCol == 1 )
+        {
+            ENCODER_CHANGE = rotaryEncoder.getIncrement();
+            //ENCODER_VALUE = rotaryEncoder.getAccumulate();
+
+            if ( ENCODER_CHANGE != 0 )
+            {
+                // calculate a value based on acceleration (= ENCODER_CHANGE)
+                // the higher ENCODER_CHANGE is, ther more gets added to the value
+                int16_t calcValueChange = ENCODER_CHANGE * ENCODER_CHANGE;
+                if (ENCODER_CHANGE < 0){ calcValueChange = -calcValueChange; }
+
+                if ( selectedRow == 0 ){ 
+                    MOTOR_MAX_SPEED_RPM = MOTOR_MAX_SPEED_RPM + calcValueChange;
+                    if ( MOTOR_MAX_SPEED_RPM < 5 )
+                    {
+                        MOTOR_MAX_SPEED_RPM = 5;
+                    }
+                }
+                else if ( selectedRow == 1 ){ 
+                    MOTOR_MIN_SPEED_RPM = MOTOR_MIN_SPEED_RPM + calcValueChange;
+                    if ( MOTOR_MIN_SPEED_RPM < 5 )
+                    {
+                        MOTOR_MIN_SPEED_RPM = 5;
+                    }
+                }
+                else if ( selectedRow == 2 ){ 
+                    MOTOR_CALIBRATION_SPEED_RPM = MOTOR_CALIBRATION_SPEED_RPM + calcValueChange;
+                    if ( MOTOR_CALIBRATION_SPEED_RPM < 5 )
+                    {
+                        MOTOR_CALIBRATION_SPEED_RPM = 5;
+                    }
+                }
+                else if ( selectedRow == 3 ){ 
+                    ACCEL_STEPS = ACCEL_STEPS + calcValueChange;
+                }
+
+                DrawMotorSettings( selectedCol, selectedRow );
+            }
+        }
+
+        // Button Checks
+        CheckButtons();
+
+        // check for rotay encoder knob switch press
+        if (BUTTON_PRESSED == 13)
+        {
+            selectedCol++;
+            if ( selectedCol > 1 ){ selectedCol = 0; }
+
+            if (selectedCol == 0) { rotaryEncoder.setAccelerationEnabled(false); }
+            else if (selectedCol == 1) { rotaryEncoder.setAccelerationEnabled(true); }
+
+            Serial.print("selectedCol: ");
+            Serial.println(selectedCol);
+
+            BUTTON_PRESSED = -1;
+
+            EncoderReset();
+            DrawMotorSettings( selectedCol, selectedRow );
+        }
+
+        // check for button 12 (red button) to initiate saving end exit motor settings
+        else if (BUTTON_PRESSED == 12)
+        {
+            BUTTON_PRESSED = -1;
+            // TODO; Save Values to EEPROM
+            EncoderReset();
+            rotaryEncoder.setAccelerationEnabled(true);
+            break;
+        }
+
+    }
 }
 
 
@@ -723,6 +913,7 @@ void MotorMoveToEndStopA()
 {
     Serial.println("MotorMoveToEndStopA");
 
+    // endstop A should be in counter clock wise motor rotation
     MOTOR_DIRECTION = HIGH;
 
     // set motor speed
@@ -873,11 +1064,18 @@ void DisplayClear()
 /*****************************************************
  *  DisplayMessage(int x, int y, String message)
  */
-void DisplayMessage(int x, int y, String message)
+void DisplayMessage(int x, int y, String message, bool inverted)
 {
+    if (inverted )
+    {
+        display.setTextColor(WHITE, BLACK);
+    }else{
+        display.setTextColor(BLACK, WHITE);
+    }
+
     display.setCursor(x, y);
     display.println(message);
-    Serial.println(message);
+    //Serial.println(message);
     display.display();
 }
 
@@ -956,4 +1154,11 @@ void DebugPrintEEPROM()
         Serial.print( ": " );
         Serial.println( data );
     }
+}
+
+void InterruptTimerCallback()
+{
+  // This is the Encoder's worker routine. It will physically read the hardware
+  // and all most of the logic happens here. Recommended interval for this method is 1ms.
+  rotaryEncoder.service();
 }
