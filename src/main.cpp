@@ -54,23 +54,23 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7);
 /*************************************************************************/
 
 /********** GLOBALS ******************************************************/
-int BUTTON_PRESSED                      = -1;       // the array ID of the button that has been pressed last
-unsigned long TOTAL_TRACK_STEPS         = 0;        // [EEPROM] the number of steps from one end stop to the the other end stop
-unsigned long START_TIME                = 0;        // used for different situations where a START_TIME is needed
-unsigned long CURRENT_STEP_POSITION     = 0;        // the current position of the motor in steps
-int16_t ENCODER_CHANGE                  = 0;        // the current encoder change value
-int16_t ENCODER_VALUE                   = 0;        // the current accumulated encoder value
-int16_t ENCODER_VALUE_OLD               = 0;        // old encoder position (needed for reading encoder changes)
+int BUTTON_PRESSED                          = -1;       // the array ID of the button that has been pressed last
+unsigned long TOTAL_TRACK_STEPS             = 0;        // [EEPROM] the number of steps from one end stop to the the other end stop
+unsigned long START_TIME                    = 0;        // used for different situations where a START_TIME is needed
+unsigned long CURRENT_STEP_POSITION         = 0;        // the current position of the motor in steps
+int16_t ENCODER_CHANGE                      = 0;        // the current encoder change value
+int16_t ENCODER_VALUE                       = 0;        // the current accumulated encoder value
+int16_t ENCODER_VALUE_OLD                   = 0;        // old encoder position (needed for reading encoder changes)
 unsigned long TARGET_POSITIONS[12];                 // [EEPROM] holds the 12 stored positions loaded from EEPROM in steps
 
-byte MOTOR_MODE                         = 0;        // different motorModes: 1 continuos, 2 single step
-int MOTOR_PPR                           = 200;      // pulses per revolution of the motor, needed to caclulate the motor speed
-int MOTOR_PULSE_DELAY                   = 2000;     // the pulse delay we use in the MotorStep() function = stepping speed
-boolean MOTOR_DIRECTION                 = LOW;      // LOW = clockwise rotation
-int MOTOR_MIN_SPEED_RPM                 = 25;       // [EEPROM] minimum motor speed in rounds per minute
-int MOTOR_MAX_SPEED_RPM                 = 420;      // [EEPROM] maximum motor speed in rounds per minute
-int MOTOR_CALIBRATION_SPEED_RPM         = 300;      // [EEPROM] this speed is used during calibration in rpm
-unsigned int ACCEL_STEPS                = 400;      // [EEPROM] the number of steps for the acceleration phase in a move
+byte MOTOR_MODE                             = 0;        // different motorModes: 1 continuos, 2 single step
+unsigned int MOTOR_PPR                      = 200;      // [EEPROM] pulses per revolution of the motor, needed to caclulate the motor speed
+unsigned int MOTOR_PULSE_DELAY              = 2000;     // the pulse delay we use in the MotorStep() function = stepping speed
+boolean MOTOR_DIRECTION                     = LOW;      // LOW = clockwise rotation
+unsigned int MOTOR_MIN_SPEED_RPM            = 25;       // [EEPROM] minimum motor speed in rounds per minute
+unsigned int MOTOR_MAX_SPEED_RPM            = 420;      // [EEPROM] maximum motor speed in rounds per minute
+unsigned int MOTOR_CALIBRATION_SPEED_RPM    = 300;      // [EEPROM] this speed is used during calibration in rpm
+unsigned int ACCEL_STEPS                    = 400;      // [EEPROM] the number of steps for the acceleration phase in a move
 
 /*************************************************************************/
 
@@ -83,7 +83,6 @@ bool CheckButton(byte id);
 int CheckButtons();
 bool CheckEndStopA();
 bool CheckEndStopB();
-void DebugPrintEEPROM();
 int Delay2RPM( int delayValue );
 void DisplayClear();
 void DisplayMessage(int x, int y, String message, bool inverted=false);
@@ -101,8 +100,9 @@ void MotorMoveTo( unsigned long targetPosition );
 void MotorMoveToEndStopA();
 void MotorModeSwitch();
 void PrepareForMainLoop();
-int RPM2Delay( int rpm );
+unsigned int RPM2Delay( int rpm );
 void SavePosition();
+void SaveMotorSettings();
 void UpdateDisplay();
 
 
@@ -365,7 +365,7 @@ int CalculateEEPROMAddressForButton( byte buttonID )
  * 
  * int rpm - the rounds pe rminute value we are aiming at
  */
-int RPM2Delay( int rpm )
+unsigned int RPM2Delay( int rpm )
 {
     return (60000000 / rpm) / MOTOR_PPR;
 }
@@ -487,22 +487,60 @@ void LoadEEPROMData()
     Serial.println("LoadEEPROMData()");
 
     int address = 0;
+
+    // TOTAL_TRACK_STEPS
     EEPROM.get(address, TOTAL_TRACK_STEPS);
+    Serial.print("    TOTAL_TRACK_STEPS: ");
+    Serial.print(TOTAL_TRACK_STEPS);
+    Serial.print(" | ");
+    Serial.println(address);
     address += sizeof(TOTAL_TRACK_STEPS);
 
-    Serial.print("TOTAL_TRACK_STEPS: ");
-    Serial.println(TOTAL_TRACK_STEPS);
-
+    // TARGET_POSITIONS
     for (size_t i = 0; i < 12; i++)
     {
         EEPROM.get(address, TARGET_POSITIONS[i]);
-        address += sizeof(TARGET_POSITIONS[i]);
-
-        Serial.print("TARGET_POSITIONS[");
+        Serial.print("    TARGET_POSITIONS[");
         Serial.print(i);
         Serial.print("]: ");
-        Serial.println(TARGET_POSITIONS[i]);
+        Serial.print(TARGET_POSITIONS[i]);
+        Serial.print(" | ");
+        Serial.println(address);
+        address += sizeof(TARGET_POSITIONS[i]);
     }
+
+    // MOTOR_MIN_SPEED_RPM
+    EEPROM.get(address, MOTOR_MIN_SPEED_RPM);
+    Serial.print("    MOTOR_MIN_SPEED_RPM: ");
+    Serial.print(MOTOR_MIN_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_MIN_SPEED_RPM);
+
+    // MOTOR_MAX_SPEED_RPM
+    EEPROM.get(address, MOTOR_MAX_SPEED_RPM);
+    Serial.print("    MOTOR_MAX_SPEED_RPM: ");
+    Serial.print(MOTOR_MAX_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_MAX_SPEED_RPM);
+
+    // MOTOR_CALIBRATION_SPEED_RPM
+    EEPROM.get(address, MOTOR_CALIBRATION_SPEED_RPM);
+    Serial.print("    MOTOR_CALIBRATION_SPEED_RPM: ");
+    Serial.print(MOTOR_CALIBRATION_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_CALIBRATION_SPEED_RPM);
+
+    // ACCEL_STEPS
+    EEPROM.get(address, ACCEL_STEPS);
+    Serial.print("    ACCEL_STEPS: ");
+    Serial.print(ACCEL_STEPS);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(ACCEL_STEPS);
+
 }
 
 
@@ -606,7 +644,7 @@ void MotorCalibrateEndStops()
     }
 
     // debug dump EEPROM to console
-    DebugPrintEEPROM();
+    LoadEEPROMData();
 
     DisplayMessage(0, 40, "Gespeichert");
     delay(2000);
@@ -694,6 +732,14 @@ void MotorSettings()
     EncoderReset();
     rotaryEncoder.setAccelerationEnabled(false);
 
+    // store these values for later camparisons to check
+    // if writing to EEPROM is neccessery at all
+    unsigned int oldMotorMinSpeedRPM            =  MOTOR_MIN_SPEED_RPM;
+    unsigned int oldMotorMaxSpeedRPM            =  MOTOR_MAX_SPEED_RPM;
+    unsigned int oldMotorCalibrationSpeedRPM    =  MOTOR_CALIBRATION_SPEED_RPM;
+    unsigned int oldAccelSteps                  =  ACCEL_STEPS;
+
+    // Draw the menu
     DrawMotorSettings( selectedCol, selectedRow );
 
     while( true )
@@ -790,7 +836,18 @@ void MotorSettings()
         else if (BUTTON_PRESSED == 12)
         {
             BUTTON_PRESSED = -1;
-            // TODO; Save Values to EEPROM
+
+            // only if any of the values haave changed write to EEPROM
+            if ( 
+                oldMotorMinSpeedRPM != MOTOR_MIN_SPEED_RPM || 
+                oldMotorMaxSpeedRPM != MOTOR_MAX_SPEED_RPM || 
+                oldMotorCalibrationSpeedRPM != MOTOR_CALIBRATION_SPEED_RPM ||
+                oldAccelSteps != ACCEL_STEPS
+            )
+            {
+                SaveMotorSettings();
+            }
+
             EncoderReset();
             rotaryEncoder.setAccelerationEnabled(true);
             break;
@@ -836,8 +893,8 @@ void MotorMoveTo( unsigned long targetPosition )
     }
 
     // set motor speed
-    int maxMotorPulseDelay      = RPM2Delay( MOTOR_MAX_SPEED_RPM );
-    int startMotorPulseDelay    = 15000;    // the starting speed delay, should be quite high to start slow (should this be adjustable? EEPROM candidate?)
+    unsigned int maxMotorPulseDelay      = RPM2Delay( MOTOR_MAX_SPEED_RPM );
+    unsigned int startMotorPulseDelay    = 15000;    // the starting speed delay, should be quite high to start slow (should this be adjustable? EEPROM candidate?)
     
     // the delay decrease per step during accellaration phase
     //unsigned int accelDelay     = abs(startMotorPulseDelay - maxMotorPulseDelay)/ACCEL_STEPS;
@@ -1082,7 +1139,7 @@ void DisplayMessage(int x, int y, String message, bool inverted)
 
 /*****************************************************
  * SavePosition
- * Aks the user to save the current position to EEPROM
+ * Asks the user to save the current position to EEPROM
  */
 void SavePosition()
 {
@@ -1129,32 +1186,52 @@ void SavePosition()
     PrepareForMainLoop();
 
     // Dump EEPROM to console 
-    DebugPrintEEPROM();
+    LoadEEPROMData();
 }
 
 
-/*****************************************************
- * DebugPrintEEPROM
- * Print the EEPROM data to console
- */
-void DebugPrintEEPROM()
+
+void SaveMotorSettings()
 {
-    unsigned int data = 0;
-    Serial.println( "Debug Print EEPROM:" );
+    Serial.println("SaveMotorSettings");
 
-    EEPROM.get( 0, data );
-    Serial.print( "trackLenght: " );
-    Serial.println( data );
+    // calculate adress of MOTOR_MIN_SPEED_RPM
+    // the first 13 values are unsigned longs
+    int address = sizeof(unsigned long) * 13;
 
-    for (size_t i = 0; i <= 11; i++)
-    {
-        EEPROM.get( CalculateEEPROMAddressForButton(i), data );
-        Serial.print( "Switch " );
-        Serial.print( i );
-        Serial.print( ": " );
-        Serial.println( data );
-    }
+    // MOTOR_MIN_SPEED_RPM
+    EEPROM.put( address, MOTOR_MIN_SPEED_RPM );
+    Serial.print("    Saved MOTOR_MIN_SPEED_RPM: ");
+    Serial.print(MOTOR_MIN_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_MIN_SPEED_RPM);
+
+    // MOTOR_MAX_SPEED_RPM
+    EEPROM.put( address, MOTOR_MAX_SPEED_RPM );
+    Serial.print("    Saved MOTOR_MAX_SPEED_RPM: ");
+    Serial.print(MOTOR_MAX_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_MAX_SPEED_RPM);
+
+    // MOTOR_CALIBRATION_SPEED_RPM
+    EEPROM.put( address, MOTOR_CALIBRATION_SPEED_RPM );
+    Serial.print("    Saved MOTOR_CALIBRATION_SPEED_RPM: ");
+    Serial.print(MOTOR_CALIBRATION_SPEED_RPM);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(MOTOR_CALIBRATION_SPEED_RPM);
+
+    // ACCEL_STEPS
+    EEPROM.put( address, ACCEL_STEPS );
+    Serial.print("    Saved ACCEL_STEPS: ");
+    Serial.print(ACCEL_STEPS);
+    Serial.print(" | ");
+    Serial.println(address);
+    address += sizeof(ACCEL_STEPS);
 }
+
 
 void InterruptTimerCallback()
 {
