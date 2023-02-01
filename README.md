@@ -1,6 +1,7 @@
 # LokLiftController
 
-Eine Arduino Steuerungs-Box für einen Lok Lift – eine Lift-System für Modell-Eisenbahnen.
+Eine Arduino Steuerungs-Box für einen Lok Lift – ein Lift-System für Modell-Eisenbahnen.
+
 Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 
 - 12 Positionen speicherbar
@@ -11,6 +12,12 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 
 [BILD der Box mit den Schaltern]
 [BILD der Box mit den Terminals]
+
+**ACHTUNG: wenn die EndStops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.**
+
+**Wenn du auf Nummer sicher gehen willst, lese erst die komplette Anleitung und stelle alle benötigten Positionen ein (Speichern nicht vergessen!). Erst danach solltest du die Gleise mit Zügen bestücken. Beim normalen Anfahren der abgespeicherten Positionen, sollten die Endstopps nie ausgelöst werden.**
+
+**ACHTUNG: Wenn die Controller-Box aus- und wieder angeschaltet wird, wird einmal der Endsstopp A angefahren (Kalibrations-Fahrt), damit die Controller-Box weiß, wo der Lift gerade steht. Wenn das ein Problem sein sollte (abrupter Stopp am Endstopp), dann entweder die Box immer laufen lassen. Und/Oder die Geschwindigkeit der Kalibarations-Fahrt verringern (im Einstellungs-Menu, der Punk CalRPM**
 
 ## Erster Start
 
@@ -28,7 +35,9 @@ und speichert die gefahrene Strecke ab. Dies ist notwendig, um später die Posit
 
 Wenn die Streckenmessung startet fährt der Motor zunächst zum Endstopp B (Motor-Drehrichtung im Uhrzeigersinn).
 Sobald Endstopp B erreicht ist wechselt die Drehrichtung (entgegen Uhrzeigersinn) und fährt zurück bis Endstopp A ausgelöst wird.
-Bitte achte bei deinem Aufbau entsprechend darauf, dass die Endstopps entsprechend angeordnet sind, so dass genau die Abfolge wie beschrieben durchgeführt werden kann.
+Bitte achte bei deinem Aufbau darauf, dass die Endstopps entsprechend angeordnet sind, so dass genau die Abfolge wie beschrieben durchgeführt werden kann.
+
+[SKIZZE AUFBAU]
 
 Nachdem am Ende der Streckenmessung Endstopp A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstopp A nicht dauerhaft 
 ausgelöst wird. Die gemessene Wegstrecke wird automatisch gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
@@ -66,14 +75,14 @@ des Motors geändert.
 
 Um den Motor anzuhalten kann man entweder den Drehregler nutzen, um die Geschwindigkeit bis auf Null zu verlangsamen, oder einfach auf den 
 Drehregler drücken. Das Drücken stoppt den Motor sofort und wechselt die Motor-Steuerung in den "Schritt-Modus". In der Regel ist dies auch 
-gewünscht, da man nach der groben Anfahrt in die Feinjustierung wechseln möchte. Falls dies nicht gewünscht ist, einfach ein weiteres mal auf 
+gewünscht, da man nach der groben Anfahrt in die Feinjustierung wechseln möchte. Falls dies nicht gewünscht ist, einfach ein weiteres Mal auf 
 den Drehregler drücken, dann ist der "Lauf-Modus" wieder aktiv. Im Display wird der aktuelle Modus auch kurz dargestellt.
 
 [BILD]
 [BILD]
 
 Wenn man den Motor-Modus wechselt, wird die Geschwindigkeit immer zurückgesetzt, damit dieser nicht automatisch losläuft. D.h. die 
-Geschwindigkeit ist nach dem Modus-Wwchsel immer Null. Wie oben beschrieben kann die Geschwindigkeit nach dem Modus-Wechsel mit dem Drehregler 
+Geschwindigkeit ist nach dem Modus-Wechsel immer Null. Wie oben beschrieben kann die Geschwindigkeit nach dem Modus-Wechsel mit dem Drehregler 
 gesteuert werden.
 
 #### Schritt-Modus
