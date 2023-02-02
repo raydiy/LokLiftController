@@ -12,8 +12,7 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 - zwei verschiedene Motor-Modi: schnelle Motor-Bewegung und Feinjustierung
 - einfache externe Anbindung der 12 Positionsschalter (z.B. für eine Computer-Steuerung)
 
-![](docs/images/LokLift-Controller-01.jpg | width=100)
-![](docs/images/LokLift-Controller-02.jpg | width=100)
+<img src="docs/images/LokLift-Controller-01.jpg" width="350"><img src="docs/images/LokLift-Controller-02.jpg" width="350">
 
 **ACHTUNG:** wenn die EndStops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.
 
@@ -25,7 +24,7 @@ Wenn du auf Nummer sicher gehen willst, lese erst die komplette Anleitung und st
 
 Nachdem die Box mit Strom versorgt wird (7-12V für den Arduino Mega über Netzteil Hohlbuchse oder 5V über USB) wird der Start-Bildschirm angezeigt.
 
-[BILD]
+<img src="docs/images/LokLift-Controller-04.jpg" width="350">
 
 Im Start-Bildschirm hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. Der Ablauf der 5 Sekunden wird duch die Punkte visualisiert.
 Drückt man während dieser 5 Sekunden auf den roten Speicher-Schalter startet man die Streckenmessung.
