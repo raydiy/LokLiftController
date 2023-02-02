@@ -1,6 +1,6 @@
 # LokLiftController
 
-![Hero Image](dicsa/images/LokLift-Controller-01.jpg)
+![Hero Image](docs/images/LokLift-Controller-01.jpg)
 
 Eine Arduino Steuerungs-Box für einen Lok Lift – ein Lift-System für Modell-Eisenbahnen.
 
