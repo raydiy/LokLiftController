@@ -1,6 +1,6 @@
 # LokLiftController
 
-![Hero Image](docs/images/LokLift-Controller-01.jpg)
+![](docs/images/LokLift-Controller-01.jpg)
 
 Eine Arduino Steuerungs-Box für einen Lok Lift – ein Lift-System für Modell-Eisenbahnen.
 
@@ -12,8 +12,8 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 - zwei verschiedene Motor-Modi: schnelle Motor-Bewegung und Feinjustierung
 - einfache externe Anbindung der 12 Positionsschalter (z.B. für eine Computer-Steuerung)
 
-[BILD der Box mit den Schaltern]
-[BILD der Box mit den Terminals]
+![](docs/images/LokLift-Controller-01.jpg | width=100)
+![](docs/images/LokLift-Controller-02.jpg | width=100)
 
 **ACHTUNG:** wenn die EndStops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.
 
