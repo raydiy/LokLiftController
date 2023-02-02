@@ -339,6 +339,8 @@ void loop()
             
             MotorStep();
 
+            // TODO: Maybe soft motor direction change? Since we know how far we are away from endstopps, this could be possible
+
             if ( CheckEndStopA() || CheckEndStopB() )
             {
                 MotorChangeDirection();
