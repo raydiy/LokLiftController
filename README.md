@@ -1,4 +1,4 @@
-# LokLiftController
+# LokLiftController – AccellStepper Variante
 
 ![](docs/images/LokLift-Controller-01.jpg)
 
