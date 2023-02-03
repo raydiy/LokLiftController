@@ -26,13 +26,13 @@ Hier Beschreibe ich, wie ich den Motor-Treiber angeschlossen habe. Wie man den S
 
 Im folgenden Schema sieht man, wie ich mein Setup angeschlossen habe:
 
-<img src="docs/images/LokLift-Controller-Setup.jpg" width="350">
+<img src="docs/images/LokLift-Controller-Setup.jpg">
 
 Das Ganze ist so ausgelegt, dass du für den Motor-Treiber und für die Controller-Box jeweils ein eigenes Netzteil benötigts.
 Mein Motor-Treiber benötigt zwischen 9 und 42 Volt und müssen über die beiden Terminals VCC und GND angeschlossen werden.
 Ich habe ein 12 Volt Netzteil verwendet und mit einer fertigen Hohlbuchse mit Terminal das Ganze verbunden. 
 
-<img src="docs/images/LokLift-Controller-05.jpg" width="350">
+<img src="docs/images/LokLift-Controller-05.jpg">
 
 Die Controller-Box bzw. der darin verbaute Arduino Mega kann mit einem 7 bis 12 Volt Netzteil über die Hohlbuchse betrieben werden. Hier könntest du also das gleiche Netzteil verwenden. Oder mit 5 Volt über die USB-Buchse wäre auch möglich.
 
