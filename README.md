@@ -171,18 +171,33 @@ Im Einstellungs-Menu können Motor-Parameter angepasst werden. Du hast zwei Mög
 - während der 5 sekündigen Startphase den Dreh-Regler drücken
 - im normalen Betrieb den Dreh-Regler doppelt drücken
 
-<img src="docs/images/LokLift-Controller-08.jpg">
+<img src="docs/images/LokLift-Controller-09.jpg">
 
 Folgende Parameter können dort eingestellt werden:
 
 | Name   | Funktion      | 
 | ------ | ------------- | 
-| MaxRPM | Die maximale Motorgeschwindigkeit in RPM, die der Motor beim Anfahren der Positionen oder im ***Lauf-Modus*** erreichen kann. |
-| MinRPM | Die minimale Motorgeschwindigkeit in RPM. Das ist die Startgeschwinbdigkeit im ***Lauf-Modus*** | 
-| CalRPM | Die Motorgeschwindigkeit in RPM, die während der Kalibrierungsfahrt eingestellt wird. |
-| AccStp | eispiel: dieser Wert steht auf 200 und die neue Position, die angefahren werdne soll, ist 1000 Schritte entfernt. Dann würde während der ersten 200 Schritte ein sanftes Anfahren durchgefürt werden. Ab Schritt 201 wird die maxRPM erreicht. Ab Schritt 800 wird dann wieder sanft bis zum Ziel abgebremst. | 
-| MotPPR | Hier musst du den PPR Wert deines Motors angeben. Der PPR Wert gibt, wieviele Schritte ein Motor für einen volle Umdrehung benötigt.<br>Oft findet man Motoren mit 200 PPR – das entspricht 1,8° pro Schritt. Wenn du nur die Angabe in Grad pro Schritt hast, dann teile 360° durch die Gard pro Schritt Angabe. Zum Beispiel: 360° / 1,8° = 200 PPR. | 
+| MaxPPS | Die maximale Motorgeschwindigkeit in Pulse Pro Sekunde, die der Motor beim Anfahren der Positionen oder im ***Lauf-Modus*** erreichen kann. |
+| Accel | Beschleunigung für das sanfte anfahren. Je höher der Wert, desto schneller wird die Zielgeschwindigkleit erreicht. | 
+| CalPPS | Die Motorgeschwindigkeit in Pulse pro Sekunde, die während der Kalibrierungsfahrt eingestellt wird. |
 
+Je nach Einstellung des Motor-Treibers, entspricht ein Pulse einem unterschiedlich großen Schritt. 
+
+Ist der Treiber auf volle Schritte eingestellt, entspricht ein Pulse einem Schritt des Motors.
+
+Kann man am Treiber sog. Microschritte verwenden und sind z.B. auf 1/2 eingestellt, entspricht ein Pulse einem halben Schritt. Dadurch sind halbe Schritte möglich. Allerdings erreicht dadurch der Motor langsamer das Ziel, da er nun doppelt so viele Schritte machen muss. Dem kann man mit den oben aufgeführten Einstellungen entgegenwirken.
+
+Bei einem Motor der bei vollen Schritten 200 Schritte für einen Umdrehung macht – das entwpricht einem motor mit 1,8° Grad Drehung pro Schritt, würde der Moter nun 400 Schritte pro voller Drehung machen bzw. 0,9° Drehung pro Schritt.
+
+Bei vielen Motor-Treiber kann man die Schritte noch weiter erhöhen, z.B. auf 1/4, 1/8, 1/16 und 1/32 erhöhen. 1/32 wären dann 6400 Schritte pro Umdrehung bzw. 0,05625° Drehung pro Schritt.
+
+Leider lassen sich in den Einstellungen maximal 1000 PPS bei der Geschwindigkeit eintragen. Werte darüber machen laut Entwickler der AcellStepper Library keinen Sinn.
+
+Hier muss man ausprobieren.
+
+***ACHTUNG:*** Wenn du die Schritt-Einstellung am Treiber veränderst, musst du die Streckenmessung leider erneut druchführen und alle Positionen neu anfahren und abspeichern.
+
+Dadruch, dass mehr Schritte durchgeführt werden, verändert such auch die gemessen Strecken-Länge.
 ## Links 
 
 Hier sind noch einmal alle verwendeten und erwähnten Bauteile erwähnt:
