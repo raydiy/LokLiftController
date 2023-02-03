@@ -52,7 +52,7 @@ Während der Entwicklung habe ich einen 17HS4401 Bi-Polar Schritt-Motor verwende
 | Rot      | B+            |
 | Blau     | B-            | 
 
-<img src="docs/images/Motor-Driver-Stepper-Motor.jpg" width="350">
+<img src="docs/images/Motor-Driver-Stepper-Motor.jpg">
 
 ***ACHTUNG:*** Natürlich musst du für einen Lok-Lift einen größeren Motor und Treiber verwenden. Wir testen demnächst diese beiden Typen. Ich werde berichten, wie sich damit der Controller schlägt:
 - [Nema34 12NM Schrittmotor und Treiber](https://geni.us/hxMw)
@@ -63,7 +63,7 @@ Die Endstops müssen auch mit der Controller-Box verbunden werden. Achte darauf 
 
 Du musst also den NO Pin von EndstopA an dem Terminal A der Controller-Box anschließen. Entsprechend den NO Pin von Ensdtopp B an Terminal B. Und beide Ground Pins der Endstops werden ebenfalls an Ground der Controller-Box angeschlossen.
 
-<img src="docs/images/LokLift-Controller-Endstops.jpg" width="350">
+<img src="docs/images/LokLift-Controller-Endstops.jpg">
 
 Hier die Links zu meinen verwendeten Endstops:
 [Endstop Mikroschalter mit Rollenhebel](https://geni.us/ZmCi)
@@ -72,7 +72,7 @@ Hier die Links zu meinen verwendeten Endstops:
 
 Wenn alles korrekt verkabelt ist, können wir den LokLift-Controller starten. Die Stromversorgung des Motor-Treibers würde ich zuerst herstellen. Dann die COntroller-Box mit Strom versorgen. Kuz darauf wird der Start-Bildschirm angezeigt.
 
-<img src="docs/images/LokLift-Controller-04.jpg" width="350">
+<img src="docs/images/LokLift-Controller-04.jpg">
 
 Im Start-Bildschirm hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. Der Ablauf der 5 Sekunden wird duch die Punkte visualisiert.
 
@@ -96,7 +96,7 @@ Bitte achte bei deinem Aufbau darauf, dass die Endstops entsprechend angeordnet 
 
 Falls der Motor sich falsch dreht, schaue auch mal im Bereich ***Tipps/Fehlerbehebungen*** nach.
 
-<img src="docs/images/LokLift-Streckenmessung.jpg" width="350">
+<img src="docs/images/LokLift-Streckenmessung.jpg">
 
 Nachdem am Ende der Streckenmessung Endstop A erreicht wurde, setzt der Motor wieder kurz zurück, damit der Endstop A nicht dauerhaft 
 ausgelöst wird. Die gemessene Wegstrecke wird automatisch gespeichert. Die Streckenmessung ist nun abgeschlossen und die Box geht in den normalen Betrieb über.
@@ -107,7 +107,7 @@ Das Display gibt eine entsprechende Meldung aus.
 
 Wenn innerhalb der 5 Sekunden im Start-Bildschirm nichts gedrückt wird bzw. nach der Streckenmessung fährt der Motor zunächst Endstop A einmal an, damit der Controller weiß, wo sich der Lift befindet. Im Display erscheint dann ***Kalibrierung ...***
 
-<img src="docs/images/LokLift-Controller-06.jpg" width="350">
+<img src="docs/images/LokLift-Controller-06.jpg">
 
 
 Sobald "Bahn frei!" im Display erscheint, kann die Box normal verwendet werden, d.h. also Positionen über die 12 Positions-Schalter anfahren 
@@ -115,7 +115,7 @@ oder neue Positionen abspeichern.
 
 Darunter wird die aktuelle Position des Lifts angezeigt.
 
-<img src="docs/images/LokLift-Controller-07.jpg" width="350">
+<img src="docs/images/LokLift-Controller-07.jpg">
 
 ## Positionen auf den 12 Tastern speichern
 
@@ -152,7 +152,7 @@ Hat der Lift nun die gewünschte Position erreicht, muss die Position auf einem 
 Dazu drücke einmal auf den roten Speichern-Taster (rechts neben dem Dreh-Regler). So weiss die Box, dass die Position nun gespeichert werden soll.
 Anschließend drücke einen der 12 Positions-Taster, um die Position auf diesen Schalter zu speichern.
 
-<img src="docs/images/LokLift-Controller-Box.jpg" width="350">
+<img src="docs/images/LokLift-Controller-Box.jpg">
 
 Falls das Speichern abgebrochen werden soll, einfach nochmal den Speichern-Taster drücken.
 
@@ -171,7 +171,7 @@ Im Einstellungs-Menu können Motor-Parameter angepasst werden. Du hast zwei Mög
 - während der 5 sekündigen Startphase den Dreh-Regler drücken
 - im normalen Betrieb den Dreh-Regler doppelt drücken
 
-<img src="docs/images/LokLift-Controller-08.jpg" width="350">
+<img src="docs/images/LokLift-Controller-08.jpg">
 
 Folgende Parameter können dort eingestellt werden:
 
