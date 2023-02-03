@@ -65,7 +65,7 @@ unsigned long TARGET_POSITIONS[12];                 // [EEPROM] holds the 12 sto
 
 byte MOTOR_MODE                             = 0;        // different motorModes: 1 continuos, 2 single step
 unsigned int MOTOR_PPR                      = 200;      // [EEPROM] pulses per revolution of the motor, needed to caclulate the motor speed
-unsigned int MOTOR_PULSE_DELAY              = 2000;     // the pulse delay we use in the MotorStep() function = stepping speed
+unsigned long MOTOR_PULSE_DELAY             = 2000;     // the pulse delay we use in the MotorStep() function = stepping speed
 boolean MOTOR_DIRECTION                     = LOW;      // LOW = clockwise rotation
 unsigned int MOTOR_MIN_SPEED_RPM            = 25;       // [EEPROM] minimum motor speed in rounds per minute
 unsigned int MOTOR_MAX_SPEED_RPM            = 420;      // [EEPROM] maximum motor speed in rounds per minute
@@ -89,8 +89,8 @@ void DisplayMessage(int x, int y, String message, bool inverted=false);
 void DrawMotorSettings( byte selectedCol, byte selectedRow );
 void EncoderReset();
 void InterruptTimerCallback();
-int LerpCos(int from, int to, unsigned int deltaSteps);
-int LerpLinear(int from, int to, unsigned int deltaSteps);
+unsigned int LerpLinear(unsigned int from, unsigned int to, unsigned int deltaSteps);
+long LinearMap(long ax, long aMin, long aMax, long bMin, long bMax);
 void LoadEEPROMData();
 void MotorChangeDirection();
 void MotorCalibrateEndStops();
@@ -104,6 +104,8 @@ unsigned int RPM2Delay( int rpm );
 void SavePosition();
 void SaveMotorSettings();
 void UpdateDisplay();
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -831,7 +833,9 @@ void MotorSettings()
                 }
                 else if ( selectedRow == 2 ){ 
                     MOTOR_CALIBRATION_SPEED_RPM = MOTOR_CALIBRATION_SPEED_RPM + calcValueChange;
-                    MOTOR_CALIBRATION_SPEED_RPM = constrain(MOTOR_CALIBRATION_SPEED_RPM, 5, 1000);
+                    //MOTOR_CALIBRATION_SPEED_RPM = constrain(MOTOR_CALIBRATION_SPEED_RPM, 5, 1000);
+                    if ( MOTOR_CALIBRATION_SPEED_RPM < 5 ){ MOTOR_CALIBRATION_SPEED_RPM = 1000; }
+                    else if ( MOTOR_CALIBRATION_SPEED_RPM > 1000 ){ MOTOR_CALIBRATION_SPEED_RPM = 5; }
                 }
                 else if ( selectedRow == 3 ){ 
                     ACCEL_STEPS = ACCEL_STEPS + calcValueChange;
@@ -1010,15 +1014,32 @@ void MotorMoveToEndStopA()
     MOTOR_DIRECTION = HIGH;
 
     // set motor speed
-    int maxMotorPulseDelay      = RPM2Delay( MOTOR_CALIBRATION_SPEED_RPM );
-    int startMotorPulseDelay    = 15000;
-    unsigned long stepsDone     = 0;
+    unsigned int maxMotorPulseDelay     = RPM2Delay( MOTOR_CALIBRATION_SPEED_RPM );
+    unsigned long startMotorPulseDelay   = 150000;
+    unsigned long stepsDone             = 0;
 
+    Serial.print("MOTOR_CALIBRATION_SPEED_RPM: ");
+    Serial.println(MOTOR_CALIBRATION_SPEED_RPM);
+    Serial.print("Converted to delay time with RPM2Delay -> ");
+    Serial.print("maxMotorPulseDelay: ");
+    Serial.println(maxMotorPulseDelay);
+    Serial.print("startMotorPulseDelay: ");
+    Serial.println(startMotorPulseDelay);
+    
     while( CheckEndStopA() == false )
     {
-        //MOTOR_PULSE_DELAY = LerpCos(startMotorPulseDelay, maxMotorPulseDelay, stepsDone);
-        MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, stepsDone);
+        //MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, stepsDone);
+        MOTOR_PULSE_DELAY = LinearMap(stepsDone, 0, ACCEL_STEPS, startMotorPulseDelay, maxMotorPulseDelay);
 
+        /*
+        if ( stepsDone <= ACCEL_STEPS )
+        {
+            Serial.print(stepsDone);
+            Serial.print("# MOTOR_PULSE_DELAY: ");
+            Serial.println(MOTOR_PULSE_DELAY);
+        }
+        */
+        
         MotorStep();
         stepsDone++;
     }
@@ -1086,39 +1107,6 @@ void UpdateDisplay()
 }
 
 /*****************************************************
- * LerpCos(int from, int to, int deltaSteps)
- * interpolates a values with a cosinus curve
- * 
- * from the starting value
- * to: the final value
- * deltaSteps: the number of steps when called in a loop = loop counter
- * 
- * Example: (in a loop)
- * MOTOR_PULSE_DELAY = LerpCos(startMotorPulseDelay, maxMotorPulseDelay, loopCounter);
- */
-int LerpCos(int from, int to, unsigned int deltaSteps)
-{
-    if (deltaSteps >= ACCEL_STEPS )
-    {
-        return to;
-    }
-
-    // how many degrees from 0 to 90 correspüonds the currenmt deltaSteps
-    int diffSteps = abs(ACCEL_STEPS - deltaSteps);
-    double diffDegree = (90.0/(double)ACCEL_STEPS) * (double)diffSteps;
-
-    // convert degree to radians
-    double pi = M_PI;
-    double radian = diffDegree * pi/180.0;
-    double factor = cos(radian);
-
-    int diffValue = to - from;
-    int result = from + round((float)diffValue * factor);
-
-    return result;
-}
-
-/*****************************************************
  * LerpLinear(int from, int to, int deltaSteps)
  * interpolates a values with in a linear manner
  * 
@@ -1129,7 +1117,7 @@ int LerpCos(int from, int to, unsigned int deltaSteps)
  * Example: (in a loop)
  * MOTOR_PULSE_DELAY = LerpLinear(startMotorPulseDelay, maxMotorPulseDelay, loopCounter);
  */
-int LerpLinear(int from, int to, unsigned int deltaSteps)
+unsigned int LerpLinear(unsigned int from, unsigned int to, unsigned int deltaSteps)
 {
     if (deltaSteps > ACCEL_STEPS )
     {
@@ -1140,6 +1128,18 @@ int LerpLinear(int from, int to, unsigned int deltaSteps)
     float valuePerStep = (float)diffValue / (float)(ACCEL_STEPS);
 
     return from + ceil((float)deltaSteps * valuePerStep);
+}
+
+
+/*****************************************************
+ * LinearMap(long ax, long aMin, long aMax, long bMin, long bMax)
+ * Maps value ax from range aMin/aMax into range bMin/bMax
+ */
+long LinearMap(long ax, long aMin, long aMax, long bMin, long bMax)
+{
+    if (ax >= aMax) return bMax; 
+    double slope = 1.0 * (bMax-bMin) / (aMax-aMin);
+    return bMin + round(slope * (ax + aMin));
 }
 
 
