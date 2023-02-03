@@ -10,15 +10,15 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 - einfaches Speichern der Gleis-Positionen
 - per Drehschalter ist der Motor direkt steuerbar
 - zwei verschiedene Motor-Modi: schnelle Motor-Bewegung und Feinjustierung
-- einfache externe Anbindung der 12 Positionsschalter (z.B. für eine Computer-Steuerung)
+- einfache externe Anbindung der 12 Positionsschalter über Terminals (z.B. für eine Computer-Steuerung)
 
 <img src="docs/images/LokLift-Controller-01.jpg" width="350"><img src="docs/images/LokLift-Controller-02.jpg" width="350">
 
-***ACHTUNG:*** wenn die Endstops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.
+***ACHTUNG:*** wenn die Endstops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiere es zunächst nur mit einem Zug aus.
 
-Wenn du auf Nummer sicher gehen willst, lese erst die komplette Anleitung und stelle alle benötigten Positionen ein (Speichern nicht vergessen!). Erst danach solltest du die Gleise mit Zügen bestücken. Beim normalen Anfahren der abgespeicherten Positionen, sollten die Endstops nie ausgelöst werden.
+Wenn du auf Nummer sicher gehen willst, lese erst diese komplette Anleitung und stelle alle benötigten Positionen ein (Speichern nicht vergessen!). Erst danach solltest du die Gleise mit Zügen bestücken. Beim normalen Anfahren der abgespeicherten Positionen, sollten die Endstops nie ausgelöst werden.
 
-***ACHTUNG:*** Wenn die Controller-Box aus- und wieder angeschaltet wird, wird einmal der Endstop A angefahren (***Kalibrations-Fahrt***), damit die Controller-Box weiß, wo der Lift gerade steht. Wenn das ein Problem sein sollte (abrupter Stopp am Endstop), dann entweder die Box immer laufen lassen, damit sie keinen Kalibrations-Fahrt macht. Oder die Geschwindigkeit der Kalibrations-Fahrt verringern (im Einstellungs-Menu unter Punkt ***CalRPM***).
+***ACHTUNG:*** Wenn die Controller-Box aus- und wieder angeschaltet wird, wird einmal der Endstop A angefahren (***Kalibrations-Fahrt***), damit die Controller-Box weiß, wo der Lift gerade steht. Wenn das ein Problem sein sollte (abrupter Stopp am Endstop), dann entweder die Box immer laufen lassen, damit sie keinen Kalibrations-Fahrt macht. Oder die Geschwindigkeit der Kalibrations-Fahrt verringern (im [Einstellungs-Menu](#einstellungs-menu) unter Punkt ***CalRPM***).
 
 ## Motor-Treiber anschließen
 
