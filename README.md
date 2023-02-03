@@ -14,11 +14,11 @@ Die Box ist auf einem Arduino Mega aufgebaut und hat folgende Features:
 
 <img src="docs/images/LokLift-Controller-01.jpg" width="350"><img src="docs/images/LokLift-Controller-02.jpg" width="350">
 
-**ACHTUNG:** wenn die Endstops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.
+***ACHTUNG:*** wenn die Endstops ausgelöst werden, muss der Motor abrupt stoppen bevor die Richtung gewechselt wird. Möglicherweise können durch das abrupte Stoppen Züge aus den Gleisen geworfen werden. Ich empfehle die Streckenmessung und das Einstellen der Positionen lieber zunächst ohne Züge einzustellen. Oder probiert es zunächst nur mit einem Zug testweise aus.
 
 Wenn du auf Nummer sicher gehen willst, lese erst die komplette Anleitung und stelle alle benötigten Positionen ein (Speichern nicht vergessen!). Erst danach solltest du die Gleise mit Zügen bestücken. Beim normalen Anfahren der abgespeicherten Positionen, sollten die Endstops nie ausgelöst werden.
 
-**ACHTUNG:** Wenn die Controller-Box aus- und wieder angeschaltet wird, wird einmal der Endstop A angefahren (**Kalibrations-Fahrt**), damit die Controller-Box weiß, wo der Lift gerade steht. Wenn das ein Problem sein sollte (abrupter Stopp am Endstop), dann entweder die Box immer laufen lassen, damit sie keinen Kalibrations-Fahrt macht. Oder die Geschwindigkeit der Kalibrations-Fahrt verringern (im Einstellungs-Menu unter Punkt **CalRPM**).
+***ACHTUNG:*** Wenn die Controller-Box aus- und wieder angeschaltet wird, wird einmal der Endstop A angefahren (***Kalibrations-Fahrt***), damit die Controller-Box weiß, wo der Lift gerade steht. Wenn das ein Problem sein sollte (abrupter Stopp am Endstop), dann entweder die Box immer laufen lassen, damit sie keinen Kalibrations-Fahrt macht. Oder die Geschwindigkeit der Kalibrations-Fahrt verringern (im Einstellungs-Menu unter Punkt ***CalRPM***).
 
 ## Motor-Treiber anschließen
 
@@ -54,7 +54,7 @@ Während der Entwicklung habe ich einen 17HS4401 Bi-Polar Schritt-Motor verwende
 
 <img src="docs/images/Motor-Driver-Stepper-Motor.jpg" width="350">
 
-**ACHTUNG:** Natürlich musst du für einen Lok-Lift einen größeren Motor und Treiber verwenden. Wir testen demnächst diese beiden Typen. Ich werde berichten, wie sich damit der Controller schlägt:
+***ACHTUNG:*** Natürlich musst du für einen Lok-Lift einen größeren Motor und Treiber verwenden. Wir testen demnächst diese beiden Typen. Ich werde berichten, wie sich damit der Controller schlägt:
 - [Nema34 12NM Schrittmotor und Treiber](https://geni.us/hxMw)
 
 ## Endstops anschließen
@@ -79,7 +79,7 @@ Im Start-Bildschirm hat man 5 Sekunden Zeit, um die Streckenmessung zu starten. 
 Drückt man während dieser 5 Sekunden auf den roten Speichern-Taster (rechts neben dem grauen Dreh-Knopf) startet man die Streckenmessung.
 Drückt man während dieser 5 Sekunden auf den grauen Dreh-Knopf gelangt man ins Einstellungs-Menu.
 
-Falls du einen Schrittmotor verwendet, der keine 200 PPR bzw 1,8° pro Schritt verwendet, solltest du zunächst den MotPPR Wert anpassen. Wie das geht, findet du im Abschnitt **Einstellungs-Menu**
+Falls du einen Schrittmotor verwendet, der keine 200 PPR bzw 1,8° pro Schritt verwendet, solltest du zunächst den MotPPR Wert anpassen. Wie das geht, findet du im Abschnitt [Einstellungs-Menu](#einstellungs-menu)
 
 Wir wollen zunächst die Streckenmessung starten.
 
@@ -94,7 +94,7 @@ Sobald Endstop B erreicht ist wechselt die Drehrichtung des Motors (entgegen Uhr
 
 Bitte achte bei deinem Aufbau darauf, dass die Endstops entsprechend angeordnet sind und der Motor sich wie beschrieben dreht, so dass genau die Abfolge wie beschrieben durchgeführt wird.
 
-Falls der Motor sich falsch dreht, schaue auch mal im Bereich **Tipps/Fehlerbehebungen** nach.
+Falls der Motor sich falsch dreht, schaue auch mal im Bereich ***Tipps/Fehlerbehebungen*** nach.
 
 <img src="docs/images/LokLift-Streckenmessung.jpg" width="350">
 
@@ -105,7 +105,7 @@ Das Display gibt eine entsprechende Meldung aus.
 
 ## Normaler Betrieb (ohne Streckenmessung)
 
-Wenn innerhalb der 5 Sekunden im Start-Bildschirm nichts gedrückt wird bzw. nach der Streckenmessung fährt der Motor zunächst Endstop A einmal an, damit der Controller weiß, wo sich der Lift befindet. Im Display erscheint dann **Kalibrierung ...**
+Wenn innerhalb der 5 Sekunden im Start-Bildschirm nichts gedrückt wird bzw. nach der Streckenmessung fährt der Motor zunächst Endstop A einmal an, damit der Controller weiß, wo sich der Lift befindet. Im Display erscheint dann ***Kalibrierung ...***
 
 <img src="docs/images/LokLift-Controller-06.jpg" width="350">
 
@@ -119,21 +119,21 @@ Darunter wird die aktuelle Position des Lifts angezeigt.
 
 ## Positionen auf den 12 Tastern speichern
 
-Wenn die Kalibierung abgeschlossen ist, kannst du nun beginnen, neue Positionen für deinen Lift auf die 12 Taster zu speichern. Dazu musst du zunächst die gewünschte Position anfahren. Um das zu erreichen, gibt es zwei verschiedene Motor-Modi – eine für grobes Anfahren (**Lauf-Modus**) und einen für die Feinjustierung (**Schritt-Modus**). Nach der Kalibierung ist zunächst der **Lauf-Modus** aktiv. 
+Wenn die Kalibierung abgeschlossen ist, kannst du nun beginnen, neue Positionen für deinen Lift auf die 12 Taster zu speichern. Dazu musst du zunächst die gewünschte Position anfahren. Um das zu erreichen, gibt es zwei verschiedene Motor-Modi – eine für grobes Anfahren (***Lauf-Modus***) und einen für die Feinjustierung (***Schritt-Modus***). Nach der Kalibierung ist zunächst der ***Lauf-Modus*** aktiv. 
 
 #### Lauf-Modus
 
-Der **Lauf-Modus** ist für eine schnelle grobe Einstellung gedacht. Mit dem Drehregler steuert man die 
+Der ***Lauf-Modus*** ist für eine schnelle grobe Einstellung gedacht. Mit dem Drehregler steuert man die 
 Geschwindigkeit des Motors. Der Motor läuft immer weiter, bis er gestoppt wird. Sollte der Motor einen Endstop auslösen, wird die Richtung 
 des Motors automatisch geändert.
 
 Um den Motor anzuhalten, kann man entweder den Drehregler nutzen, um die Geschwindigkeit bis auf Null zu verlangsamen, oder einfach auf den 
 Drehregler drücken. 
 
-Das Drücken stoppt den Motor sofort. Ausserdem wechselt der Modus nun in den **Schritt-Modus**. In der Regel ist dies auch 
+Das Drücken stoppt den Motor sofort. Ausserdem wechselt der Modus nun in den ***Schritt-Modus***. In der Regel ist dies auch 
 erwünscht, da man nach der groben Anfahrt nun in die Feinjustierung wechseln möchte. 
 
-Falls dies nicht gewünscht ist, einfach ein weiteres Mal auf den Drehregler drücken, dann ist der **Lauf-Modus** wieder aktiv. 
+Falls dies nicht gewünscht ist, einfach ein weiteres Mal auf den Drehregler drücken, dann ist der ***Lauf-Modus*** wieder aktiv. 
 
 Im Display wird der aktuelle Modus auch kurz durch eine entsprechende Nachricht dargestellt.
 
@@ -141,9 +141,9 @@ Wenn man den Motor-Modus wechselt, wird die Geschwindigkeit immer zurückgesetzt
 Geschwindigkeit ist nach dem Modus-Wechsel immer Null. 
 
 #### Schritt-Modus
-Im **Schritt-Modus** wird mit jedem Schritt des Drehreglers ein einzelner Motor-Schritt gefahren. So können die Gleise sehr genau ausgerichtet werden.
+Im ***Schritt-Modus*** wird mit jedem Schritt des Drehreglers ein einzelner Motor-Schritt gefahren. So können die Gleise sehr genau ausgerichtet werden.
 
-Ein Druck auf den Dreh-Regler wechselt wieder in den **Lauf-Modus**.
+Ein Druck auf den Dreh-Regler wechselt wieder in den ***Lauf-Modus***.
 
 ## Positionen abspeichern
 
@@ -156,7 +156,7 @@ Anschließend drücke einen der 12 Positions-Taster, um die Position auf diesen 
 
 Falls das Speichern abgebrochen werden soll, einfach nochmal den Speichern-Taster drücken.
 
-Wenn du alle Position gespeichert hast, kannst du nun Züge auf die Gleise setzen. Mit den Positions-Tastern werden die gespeicherten Positionen sanft  angefahren. Vorsichtiges nachjustieren und erneutes abspeichern sollte mit Zügen kein Problem sein. Passe nur auf, dass du keinen der Endstops erreichst, da hier die Richtung möglicherweise zu abrupt geändert wird. Allerdings dürfte das nur beim Arbeiten mit dem **Lauf-Modus** passieren. Und bei der Kalibrierungsfahrt nach einem Neustart des Controllers oder bei der erstmaligen Streckenemessung.
+Wenn du alle Position gespeichert hast, kannst du nun Züge auf die Gleise setzen. Mit den Positions-Tastern werden die gespeicherten Positionen sanft  angefahren. Vorsichtiges nachjustieren und erneutes abspeichern sollte mit Zügen kein Problem sein. Passe nur auf, dass du keinen der Endstops erreichst, da hier die Richtung möglicherweise zu abrupt geändert wird. Allerdings dürfte das nur beim Arbeiten mit dem ***Lauf-Modus*** passieren. Und bei der Kalibrierungsfahrt nach einem Neustart des Controllers oder bei der erstmaligen Streckenemessung.
 
 ## Positionen anfahren
 
@@ -173,31 +173,15 @@ Im Einstellungs-Menu können Motor-Parameter angepasst werden. Du hast zwei Mög
 
 <img src="docs/images/LokLift-Controller-08.jpg" width="350">
 
-Folgende Parameter können dort eingestellt werden
-
-#### MaxRPM – Maximum RPM
-Die maximale Motorgeschwindigkeit in RPM, die der Motor beim Anfahren der Positionen oder im **Lauf-Modus** erreichen kann.
-#### MinRPM – Minimal RPM
-Die minimale Motorgeschwindigkeit in RPM. Das ist die Startgeschwinbdigkeit im **Lauf-Modus**
-#### CalRPM – Calibration RPM
-Die Motorgeschwindigkeit in RPM, die während der Kalibrierungsfahrt eingestellt wird.
-#### AccStp – Acceleration Steps
-Die Anzahl der Schritte während der ein sanftes Anfahren bzw. Abbremsen durchgeführt werden soll. 
-Beispiel: dieser Wert steht auf 200 und die neue Position, die angefahren werdne soll, ist 1000 Schritte entfernt. Dann würde während der ersten 200 Schritte ein sanftes Anfahren durchgefürt werden. Ab Schritt 201 wird die maxRPM erreicht. Ab Schritt 800 wird dann wieder sanft bis zum Ziel abgebremst.
-
-#### MotPPR – Motor Pulses per Round
-Hier musst du den PPR Wert deines Motors angeben. Der PPR Wert gibt, wieviele Schritte ein Motor für einen volle Umdrehung benötigt.
-Oft findet man Motoren mit 200 PPR – das entspricht 1,8° pro Schritt. Wenn du nur die Angabe in Grad pro Schritt hast, dann teile 360° durch die Gard pro Schritt Angabe. Zum Beispiel: 360° / 1,8° = 200 PPR.
-
+Folgende Parameter können dort eingestellt werden:
 
 | Name   | Funktion      | 
 | ------ | ------------- | 
-| MaxRPM | Die maximale Motorgeschwindigkeit in RPM, die der Motor beim Anfahren der Positionen oder im **Lauf-Modus** erreichen kann. |
-| MinRPM | Die minimale Motorgeschwindigkeit in RPM. Das ist die Startgeschwinbdigkeit im **Lauf-Modus** | 
+| MaxRPM | Die maximale Motorgeschwindigkeit in RPM, die der Motor beim Anfahren der Positionen oder im ***Lauf-Modus*** erreichen kann. |
+| MinRPM | Die minimale Motorgeschwindigkeit in RPM. Das ist die Startgeschwinbdigkeit im ***Lauf-Modus*** | 
 | CalRPM | Die Motorgeschwindigkeit in RPM, die während der Kalibrierungsfahrt eingestellt wird. |
 | AccStp | eispiel: dieser Wert steht auf 200 und die neue Position, die angefahren werdne soll, ist 1000 Schritte entfernt. Dann würde während der ersten 200 Schritte ein sanftes Anfahren durchgefürt werden. Ab Schritt 201 wird die maxRPM erreicht. Ab Schritt 800 wird dann wieder sanft bis zum Ziel abgebremst. | 
-| MotPPR | Hier musst du den PPR Wert deines Motors angeben. Der PPR Wert gibt, wieviele Schritte ein Motor für einen volle Umdrehung benötigt.
-Oft findet man Motoren mit 200 PPR – das entspricht 1,8° pro Schritt. Wenn du nur die Angabe in Grad pro Schritt hast, dann teile 360° durch die Gard pro Schritt Angabe. Zum Beispiel: 360° / 1,8° = 200 PPR. | 
+| MotPPR | Hier musst du den PPR Wert deines Motors angeben. Der PPR Wert gibt, wieviele Schritte ein Motor für einen volle Umdrehung benötigt.<br>Oft findet man Motoren mit 200 PPR – das entspricht 1,8° pro Schritt. Wenn du nur die Angabe in Grad pro Schritt hast, dann teile 360° durch die Gard pro Schritt Angabe. Zum Beispiel: 360° / 1,8° = 200 PPR. | 
 
 ## Links 
 
